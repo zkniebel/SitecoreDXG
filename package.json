@@ -1,0 +1,28 @@
+{
+    "name": "sitecoreuml-cli",
+    "version": "0.0.0",
+    "description": "CLI tool for generating diagrams and documentation with SitecoreUML without requiring the StarUML IDE",
+    "main": "SitecoreUML-CLI.js",
+    "scripts": {},
+    "repository": {
+    },
+    "author": "Zachary Kniebel (@Zachary_Kniebel on Sitecore Slack)",
+    "dependencies": {
+        "commander": "2.5.0",
+        "request": "2.83.0",
+        "metadata-json": "0.9.11",
+        "mdgen": "0.9.3",
+        "fs": "0.0.1-security",
+        "dagre": "0.4.5",
+        "graphlib": "0.7.4",
+        "canvas": "^1.6.9"
+    },
+    "bugs": {
+    },
+    "preferGlobal": true,
+    "src": {
+        "sitecore-cli": "bin/sitecoreuml-cli.js",
+        "sitecore-cli-gettemplatesjson": "bin/sitecoreuml-cli-gettemplatesjson.js",
+        "sitecore-cli-generatemdjfile": "bin/sitecoreuml-cli-generatemdjfile.js"
+    }
+}
