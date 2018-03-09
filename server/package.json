@@ -1,0 +1,11 @@
+{
+  "name": "sitecore-dxg-server",
+  "version": "0.0.1",
+  "description": "Sitecore Document Experience Generator Server",
+  "main": "main.js",
+  "scripts": {},
+  "author": "Zachary Kniebel",
+  "devDependencies": {
+    "express": "^4.16.2"
+  }
+}
