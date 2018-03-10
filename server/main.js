@@ -3,6 +3,7 @@
  */
 
 const Express = require("express");
+const bodyParser = require('body-parser');
 
 /**
  * CONSTANTS
@@ -13,8 +14,11 @@ const router = Express.Router();
 const port = 8023;
 
 /**
- * HANDLERS & EXECUTION
+ * REQUEST HANDLERS
  */
+
+// parse request bodies
+app.use(bodyParser);
 
 // route prefix
 app.use("/sitecore-dxg", router);
