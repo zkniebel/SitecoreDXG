@@ -8,7 +8,7 @@ const Express = require("express");
  * CONSTANTS
  */
 
-const express = Express();
+const app = Express();
 const router = Express.Router();
 const port = 8023;
 
@@ -17,7 +17,7 @@ const port = 8023;
  */
 
 // route prefix
-express.use("/sitecore-dxg", router);
+app.use("/sitecore-dxg", router);
 
 // url: <domain>:8023/sitecore-dxg/status
 router.get("/status", (request, response) => {
@@ -35,4 +35,4 @@ router.get("/generate/documentation", (request, response) => {
 });
 
 // start listening
-express.listen(port, () => console.log(`Sitecore DXG Service Started. Listening on port ${port}`));
+app.listen(port, () => console.log(`Sitecore DXG Service Started. Listening on port ${port}`));
