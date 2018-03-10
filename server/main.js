@@ -20,10 +20,12 @@
 
 // node
 const path = require("path");
+const fs = require("fs");
 
 // third-party
 const express = require("express");
 const bodyParser = require('body-parser');
+const archiver = require("archiver");
 
 // local
 const configurationLoader = require("./configuration-loader.js");
@@ -93,7 +95,49 @@ router.post("/generate/documentation", jsonParser, (request, response) => {
         return;
     }
 
-    response.json({ message: "HTML Documentation generation has not yet implemented" });
+    // create the target file path at which the output file will be stored
+    var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
+    var targetMdjFileName = "Architecture.mdj";
+    var targetMdjFilePath = path.join(targetFolderPath, targetMdjFileName);
+    var targetHtmlDocFolderName = "Html_Docs";
+    var targetHtmlDocFolderPath = path.join(targetFolderPath, targetHtmlDocFolderName);
+    var targetArchiveFileName = targetHtmlDocFolderName + ".zip";
+    var targetArchiveFilePath = path.join(targetFolderPath, targetArchiveFileName);
+
+    try {
+        mdjre.reverseEngineerMetaDataJsonFile(request.body.Data, targetMdjFilePath);
+        mdjre.generateHtmlDocumentation(targetMdjFilePath, targetHtmlDocFolderPath);
+
+        // TODO: move this logic into the mdj-reverseengineer module
+        var targetArchiveFileOutput = fs.createWriteStream(targetArchiveFilePath);
+        var archive = archiver("zip");
+        
+        targetArchiveFileOutput.on("close", function () {
+            console.log(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
+
+            response.sendFile(targetArchiveFileName, { root: targetFolderPath }, function (error) {
+                if (error) {
+                    console.error(error);
+                    return;
+                } 
+            });
+        });
+        
+        archive.pipe(targetArchiveFileOutput);
+        archive.directory(targetHtmlDocFolderPath, false);
+        
+        archive.on("error", function(error){
+            console.error(error);
+            response.json({ "Success": false, "ErrorMessage": `Error while archiving "${error}"`});
+            return;
+        });
+
+        archive.finalize();
+    } catch(error) {
+        console.error(error);
+        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"`});
+        return;
+    }
 });
 
 // start listening

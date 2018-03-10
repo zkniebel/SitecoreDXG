@@ -31,7 +31,7 @@ const _graphlib = require("graphlib");
 
 /*
  * GLOBALS
- */ 
+ */
 
 /**
  * @description Global variable to hold the dagre library reference. The variable must be defined globally for MetaData-Json's diagram reformatting functionality to work.
@@ -88,11 +88,11 @@ function _initializeAndSizeView(view, canvas, x1, y1, x2, y2) {
   x2 = x2 || 0;
   y2 = y2 || 0;
 
-  view.subViews.forEach(function(subView) {
+  view.subViews.forEach(function (subView) {
     subView.model = view.model;
   });
-  
-  view.setup(canvas);  
+
+  view.setup(canvas);
   view.initialize(canvas, x1, y1, x2, y2);
   view.update(canvas);
   view.getSizeOfAllCompartments(canvas);
@@ -261,7 +261,7 @@ function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
   view._type = "UMLInterfaceView";
   view.model = model
   view.suppressAttributes = false;
-  
+
   var attributeCompartmentViews = view.subViews.filter(function (subview) {
     return subview instanceof type.UMLAttributeCompartmentView;
   });
@@ -277,7 +277,7 @@ function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
 
   _initializeAndSizeView(view, canvas);
   diagram.addOwnedView(view);
-  
+
   createdItemViewsCache[model._id] = view;
   return view;
 };
@@ -321,7 +321,7 @@ function _createFolderView(model, diagram, canvas, createdItemViewsCache) {
   view._type = "UMLPackageView";
   view.model = model;
 
-  view.subViews.forEach(function(subView) {
+  view.subViews.forEach(function (subView) {
     subView.model = model;
   });
 
@@ -387,11 +387,11 @@ function _createItemModelAndView(jsonItem, parentModel, templatesDiagram, templa
  */
 function _getJsonItems(jsonItem) {
   return jsonItem.IsTemplate
-    ? [ jsonItem ]
-    : [ jsonItem ]
-        .concat(jsonItem.Children
-          .map(_getJsonItems))
-        .reduce(function(result, entry) { return result.concat(entry); }, []);
+    ? [jsonItem]
+    : [jsonItem]
+      .concat(jsonItem.Children
+        .map(_getJsonItems))
+      .reduce(function (result, entry) { return result.concat(entry); }, []);
 };
 
 /**
@@ -401,10 +401,10 @@ function _getJsonItems(jsonItem) {
  */
 function _getJsonTemplates(jsonItem) {
   return jsonItem.IsTemplate
-    ? [ jsonItem ]
+    ? [jsonItem]
     : jsonItem.Children
-        .map(_getJsonTemplates)
-        .reduce(function(result, entry) { return result.concat(entry); }, []);
+      .map(_getJsonTemplates)
+      .reduce(function (result, entry) { return result.concat(entry); }, []);
 };
 
 /*
@@ -418,7 +418,7 @@ function _getJsonTemplates(jsonItem) {
  * @param {String} contextType the context type of the canvas (Default: "2d")
  * @returns {Canvas}
  */
-function createCanvas(width, height, contextType) { 
+function createCanvas(width, height, contextType) {
   width = width || 2000;
   height = height || 2000;
   contextType = contextType || "2d";
@@ -443,7 +443,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // architecture is required and must have an initialized Items property
   if (!architecture || !architecture.Items) {
     throw "The JSON architecture is required and the JSON Items property must be intialized.";
-  } 
+  }
 
   // outputFilePath is required
   if (!outputFilePath) {
@@ -501,10 +501,10 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // *** this needs to run in a separate loop to ensure all items have already been created
   architecture.Items
     .map(_getJsonItems)
-    .reduce(function(result, entry) { return result.concat(entry); }, [])
+    .reduce(function (result, entry) { return result.concat(entry); }, [])
     .forEach(function (jsonItem) {
       var view = createdItemViewsCache[jsonItem.ReferenceID];
-      
+
       // create the base template relationship models and views
       if (jsonItem.IsTemplate) {
         jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
@@ -514,13 +514,13 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
 
           _createBaseTemplateRelationshipView(model, view, baseTemplateView, templatesDiagram, canvas);
         });
-      // create the parent-child relationship views
-      } else { 
+        // create the parent-child relationship views
+      } else {
         var parentModel = view.model._parent;
         var parentView = createdItemViewsCache[parentModel._id];
 
         // may not have a parent if it is a root folder (e.g. Foundation, Feature or Project, in Helix)
-        if (!parentView) { 
+        if (!parentView) {
           return;
         }
         _createContainmentRelationshipView(view, parentView, templateFoldersDiagram, canvas);
@@ -543,9 +543,26 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
 };
 
 /**
+ * Generates the HTML documentation for the given metadata-json file
+ * @param {String} mdjFilePath the file to generate the docs from
+ * @param {String} outputFolderPath the output folder location where the docs are to be stored
+ */
+var generateHtmlDocumentation = (mdjFilePath, outputFolderPath) => {
+  try {
+    mdjson.loadFromFile(mdjFilePath);
+    mdjson.exportToHTML(outputFolderPath, true);
+    console.log(`HTML Documentation Generated at path "${outputFolderPath}"`);
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+};
+
+/**
  * EXPORTS
  */
 
 exports.LayoutOptions = LayoutOptions;
 exports.createCanvas = createCanvas;
 exports.reverseEngineerMetaDataJsonFile = reverseEngineerMetaDataJsonFile;
+exports.generateHtmlDocumentation = generateHtmlDocumentation;

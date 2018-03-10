@@ -12,9 +12,10 @@
     "fs": "0.0.1-security",
     "dagre": "0.4.5",
     "graphlib": "0.7.4",
-    "canvas-prebuilt":"v2.0.0-alpha.5",
+    "canvas-prebuilt": "v2.0.0-alpha.5",
     "extend": "3.0.1",
     "guid": "0.0.12",
-    "left-pad": "1.2.0"
+    "left-pad": "1.2.0",
+    "archiver": "2.1.1"
   }
 }

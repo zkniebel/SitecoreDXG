@@ -22,7 +22,7 @@
 const fs = require("fs");
 
 /**
- * FUNCTIONS
+ * PUBLIC FUNCTIONS
  */
 
 /**
