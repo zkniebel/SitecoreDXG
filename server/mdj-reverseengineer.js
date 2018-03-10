@@ -20,11 +20,14 @@
 
 // node
 const fs = require("fs");
+const path = require("path");
 
 // third-party
 const mdjson = require("metadata-json");
 const nodeCanvas = require("canvas-prebuilt");
 const extend = require("extend");
+const archiver = require("archiver");
+
 
 const _dagre = require("dagre");
 const _graphlib = require("graphlib");
@@ -559,6 +562,36 @@ var generateHtmlDocumentation = (mdjFilePath, outputFolderPath) => {
 };
 
 /**
+ * Generates the HTML documentation fo rthe given metadata-json file, zips it and then executes a callback
+ * @param {String} mdjFilePath path to the metadata-json file to generate the docs from
+ * @param {String} docFolderPath the output folder location where the uncompressed docs are to be stored
+ * @param {String} archiveFilePath the file location where the compressed docs are to be stored
+ * @param {String} successCallback the callback to execute after the docs have successfully finished being archived
+ * @param {String} errorCallback the callback to execute if the archiving process fails
+ */
+var generateHtmlDocumentationArchive = (mdjFilePath, docFolderPath, archiveFilePath, successCallback, errorCallback) => {
+  // generate the docs
+  generateHtmlDocumentation(mdjFilePath, docFolderPath);
+
+  // archive the docs
+  var archive = archiver("zip");
+  var archiveFileOutput = fs.createWriteStream(archiveFilePath);
+
+  // on successful close, execute the success callback function
+  archiveFileOutput.on("close", successCallback);
+
+  // add the html docs output folder to the archive
+  archive.pipe(archiveFileOutput);
+  archive.directory(docFolderPath, false);
+
+  // on error, execute the error callback function
+  archive.on("error", errorCallback);
+
+  // finalize and close the archive
+  archive.finalize();
+};
+
+/**
  * EXPORTS
  */
 
@@ -566,3 +599,4 @@ exports.LayoutOptions = LayoutOptions;
 exports.createCanvas = createCanvas;
 exports.reverseEngineerMetaDataJsonFile = reverseEngineerMetaDataJsonFile;
 exports.generateHtmlDocumentation = generateHtmlDocumentation;
+exports.generateHtmlDocumentationArchive = generateHtmlDocumentationArchive;

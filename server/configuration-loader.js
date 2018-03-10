@@ -55,7 +55,7 @@ function SitecoreDXGConfiguration() {
     this.createBucketedOutputSubdirectoryPath = (includeUniqueFolder) => {
         var now = new Date(Date.now());
         var bucketPath = this.OutputDirectoryPath;
-    
+
         // get/create the year folder
         bucketPath = path.join(bucketPath, `${now.getUTCFullYear()}`);
         fileUtils.createDirectorySync(bucketPath);
@@ -65,13 +65,13 @@ function SitecoreDXGConfiguration() {
         // get/create the day folder
         bucketPath = path.join(bucketPath, `${leftPad(now.getUTCDate(), 2, 0)}`);
         fileUtils.createDirectorySync(bucketPath);
-    
+
         // create a unique folder if necessary
         if (includeUniqueFolder) {
             bucketPath = path.join(bucketPath, guid.raw());
             fileUtils.createDirectorySync(bucketPath);
         }
-    
+
         return bucketPath;
     };
 
@@ -94,7 +94,7 @@ function SitecoreDXGConfiguration() {
 function getConfiguration() {
     var config = extend(new SitecoreDXGConfiguration(), settings);
     config._initialize();
-    
+
     return config;
 };
 

@@ -20,13 +20,10 @@
 
 // node
 const path = require("path");
-const fs = require("fs");
 
 // third-party
 const express = require("express");
 const bodyParser = require('body-parser');
-const archiver = require("archiver");
-
 // local
 const configurationLoader = require("./configuration-loader.js");
 const mdjre = require("./mdj-reverseengineer.js");
@@ -63,7 +60,7 @@ router.get("/status", (request, response) => {
 // url: <domain>:8023/sitecore-dxg/generate/mdj
 router.post("/generate/mdj", jsonParser, (request, response) => {
     if (!request.body.Success) {
-        response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"`});
+        response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"` });
         return;
     }
 
@@ -74,9 +71,9 @@ router.post("/generate/mdj", jsonParser, (request, response) => {
 
     try {
         var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(request.body.Data, targetFilePath);
-    } catch(error) {
+    } catch (error) {
         console.error(error);
-        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"`});
+        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"` });
         return;
     }
 
@@ -84,14 +81,14 @@ router.post("/generate/mdj", jsonParser, (request, response) => {
         if (error) {
             console.error(error);
             return;
-        } 
+        }
     });
 });
 
 // url: <domain>:8023/sitecore-dxg/generate/mdj
 router.post("/generate/documentation", jsonParser, (request, response) => {
     if (!request.body.Success) {
-        response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"`});
+        response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"` });
         return;
     }
 
@@ -106,36 +103,28 @@ router.post("/generate/documentation", jsonParser, (request, response) => {
 
     try {
         mdjre.reverseEngineerMetaDataJsonFile(request.body.Data, targetMdjFilePath);
-        mdjre.generateHtmlDocumentation(targetMdjFilePath, targetHtmlDocFolderPath);
+        mdjre.generateHtmlDocumentationArchive(
+            targetMdjFilePath,
+            targetHtmlDocFolderPath,
+            targetArchiveFilePath,
+            function () {
+                console.log(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
 
-        // TODO: move this logic into the mdj-reverseengineer module
-        var targetArchiveFileOutput = fs.createWriteStream(targetArchiveFilePath);
-        var archive = archiver("zip");
-        
-        targetArchiveFileOutput.on("close", function () {
-            console.log(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
-
-            response.sendFile(targetArchiveFileName, { root: targetFolderPath }, function (error) {
-                if (error) {
-                    console.error(error);
-                    return;
-                } 
+                response.sendFile(targetArchiveFileName, { root: targetFolderPath }, function (error) {
+                    if (error) {
+                        console.error(error);
+                        return;
+                    }
+                });
+            },
+            function (error) {
+                console.error(error);
+                response.json({ "Success": false, "ErrorMessage": `Error while archiving "${error}"` });
+                return;
             });
-        });
-        
-        archive.pipe(targetArchiveFileOutput);
-        archive.directory(targetHtmlDocFolderPath, false);
-        
-        archive.on("error", function(error){
-            console.error(error);
-            response.json({ "Success": false, "ErrorMessage": `Error while archiving "${error}"`});
-            return;
-        });
-
-        archive.finalize();
-    } catch(error) {
+    } catch (error) {
         console.error(error);
-        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"`});
+        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"` });
         return;
     }
 });

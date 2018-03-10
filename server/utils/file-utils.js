@@ -30,7 +30,7 @@ const fs = require("fs");
  * @param {String} path the path of the directory to create
  */
 function createDirectorySync(path) {
-    if (!fs.existsSync(path)){
+    if (!fs.existsSync(path)) {
         fs.mkdirSync(path);
     }
 };
