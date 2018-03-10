@@ -15,24 +15,19 @@
  */
 
 /**
- * Module dependencies.
+ * DEPENDENCIES
  */
 
-var commander = require("commander");
-var request = require("request");
-var mdjson = require("metadata-json");
-var mdgen = require("../node_modules/mdgen/bin/mdgen");
-var fs = require("fs");
-var nodeCanvas = require("canvas");
+// node
+const fs = require("fs");
 
-var _dagre = require("dagre");
-var _graphlib = require("graphlib");
+// third-party
+const mdjson = require("metadata-json");
+const nodeCanvas = require("canvas-prebuilt");
+const extend = require("extend");
 
-commander
-  .option("-p, --projectname <projectname>", "project name (optional)")
-  .option("-d, --layoutdirection <layoutdirection>", "layout direction (optional); one of \"TB\", \"BT\", \"LR\", \"RL\"")
-  .option("-o, --output <file>", "output file (required)")
-  .parse(process.argv);
+const _dagre = require("dagre");
+const _graphlib = require("graphlib");
 
 /*
  * GLOBALS
@@ -48,16 +43,34 @@ global.dagre = _dagre;
 global.graphlib = _graphlib;
 
 /*
- * PROPERTIES
+ * TYPES
  */
 
 /** 
- * @description Map that stores the created views for the items as values and the item IDs as the keys
+ * Holds the options to be used for laying out each of the diagrams
+ * @description Valid settings values are: "LR" (left to right), "RL" (right to left), "TB" (top to bottom), "BT" (bottom to top), and "" (auto)
  */
-var _createdItemViewsCache = {};
+function LayoutOptions() {
+  /**
+   * @property layout of the templates diagram (Default: "LR")
+   */
+  this.TemplatesDiagram = "LR";
+  /**
+   * @property layout of the template folders diagram (Default: "LR")
+   */
+  this.TemplateFoldersDiagram = "LR";
+  /**
+   * @property layout of the module diagrams (Default: "LR")
+   */
+  this.ModuleDiagram = "LR";
+  /**
+   * @property layout of the layer diagrams (Default: "LR")
+   */
+  this.LayerDiagram = "LR";
+};
 
 /*
- * FUNCTIONS
+ * AUXILIARY FUNCTIONS
  */
 
 /**
@@ -69,7 +82,7 @@ var _createdItemViewsCache = {};
  * @param {*} x2 the x2 coordinate (Default: 0)
  * @param {*} y2 the y2 coordinate (Default: 0)
  */
-function initializeAndSizeView(view, canvas, x1, y1, x2, y2) {
+function _initializeAndSizeView(view, canvas, x1, y1, x2, y2) {
   x1 = x1 || 0;
   y1 = y1 || 0;
   x2 = x2 || 0;
@@ -96,7 +109,7 @@ function initializeAndSizeView(view, canvas, x1, y1, x2, y2) {
  * @param {Canvas} canvas the canvas for drawing and sizing the view
  * @returns {UMLContainmentView}
  */
-function createContainmentRelationshipView(childView, parentView, diagram, canvas) {
+function _createContainmentRelationshipView(childView, parentView, diagram, canvas) {
   var view = new type.UMLContainmentView();
   view._type = "UMLContainmentView";
   view.tail = childView;
@@ -113,7 +126,7 @@ function createContainmentRelationshipView(childView, parentView, diagram, canva
  * @param {UMLInterface} baseTemplateModel te model of the template that the given template model is based on
  * @returns {UMLGeneralization} 
  */
-function createBaseTemplateRelationshipModel(templateModel, baseTemplateModel) {
+function _createBaseTemplateRelationshipModel(templateModel, baseTemplateModel) {
   var model = new type.UMLGeneralization();
   model._type = "UMLGeneralization";
   model._parent = templateModel;
@@ -133,7 +146,7 @@ function createBaseTemplateRelationshipModel(templateModel, baseTemplateModel) {
  * @param {Canvas} canvas the canvas for drawing and sizing the view
  * @returns {UMLGeneralizationView}
  */
-function createBaseTemplateRelationshipView(model, templateView, baseTemplateView, diagram, canvas) {
+function _createBaseTemplateRelationshipView(model, templateView, baseTemplateView, diagram, canvas) {
   var view = new type.UMLGeneralizationView();
   view._type = "UMLGeneralizationView";
   view.model = model;
@@ -152,7 +165,7 @@ function createBaseTemplateRelationshipView(model, templateView, baseTemplateVie
  * @param {*} value the value of the tag
  * @returns {Tag}
  */
-function createTagModel(name, kind, value) {
+function _createTagModel(name, kind, value) {
   var model = new type.Tag();
   model._type = "Tag";
   model.name = name;
@@ -168,7 +181,7 @@ function createTagModel(name, kind, value) {
  * @param {UMLInterface} templateModel the template to add the new attribute model to
  * @returns {UMLAttribute}
  */
-function createFieldModel(jsonField, templateModel) {
+function _createFieldModel(jsonField, templateModel) {
   var model = new type.UMLAttribute();
   model._type = "UMLAttribute";
   model._parent = templateModel;
@@ -183,12 +196,12 @@ function createFieldModel(jsonField, templateModel) {
     "**Unversioned:** `" + JSON.stringify(jsonField.Unversioned) + "`  \n";
 
   model.ownedElements = [
-    createTagModel("Title", "string", jsonField.Title),
-    createTagModel("SectionName", "string", jsonField.SectionName),
-    createTagModel("Source", "string", jsonField.Source),
-    createTagModel("StandardValue", "string", jsonField.StandardValue),
-    createTagModel("Shared", "string", jsonField.Shared),
-    createTagModel("Unversioned", "string", jsonField.Unversioned)
+    _createTagModel("Title", "string", jsonField.Title),
+    _createTagModel("SectionName", "string", jsonField.SectionName),
+    _createTagModel("Source", "string", jsonField.Source),
+    _createTagModel("StandardValue", "string", jsonField.StandardValue),
+    _createTagModel("Shared", "string", jsonField.Shared),
+    _createTagModel("Unversioned", "string", jsonField.Unversioned)
   ];
 
   templateModel.attributes.push(model);
@@ -202,7 +215,7 @@ function createFieldModel(jsonField, templateModel) {
  * @param {Canvas} canvas the canvas for drawing and sizing the view
  * @returns {UMLAttributeView}
  */
-function createFieldView(model, parentView, canvas) {
+function _createFieldView(model, parentView, canvas) {
   var view = new type.UMLAttributeView();
   view._type = "UMLAttributeView";
   view._parent = parentView._id;
@@ -219,7 +232,7 @@ function createFieldView(model, parentView, canvas) {
   * @param {Model} parentModel the parent model
   * @returns {UMLInterface}
  */
-function createTemplateModel(jsonTemplate, parentModel) {
+function _createTemplateModel(jsonTemplate, parentModel) {
   var model = new type.UMLInterface();
   model._type = "UMLInterface";
   model._id = jsonTemplate.ReferenceID;
@@ -229,7 +242,7 @@ function createTemplateModel(jsonTemplate, parentModel) {
   parentModel.ownedElements.push(model);
 
   jsonTemplate.Fields.forEach(function (jsonField) {
-    createFieldModel(jsonField, model);
+    _createFieldModel(jsonField, model);
   });
 
   return model;
@@ -240,9 +253,10 @@ function createTemplateModel(jsonTemplate, parentModel) {
   * @param {UMLInterface} model the model to create the view for
   * @param {UMLDiagram} diagram the diagram to display the view
   * @param {Canvas} canvas the canvas for drawing and sizing the view
+  * @param {object} createdItemViewsCache map of item IDs to their created views
   * @returns {UMLInterfaceView}
  */
-function createTemplateView(model, diagram, canvas) {
+function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
   var view = new type.UMLInterfaceView();
   view._type = "UMLInterfaceView";
   view.model = model
@@ -258,13 +272,13 @@ function createTemplateView(model, diagram, canvas) {
 
   var attributeCompartmentView = attributeCompartmentViews[0];
   model.attributes.forEach(function (fieldModel) {
-    createFieldView(fieldModel, attributeCompartmentView, canvas);
+    _createFieldView(fieldModel, attributeCompartmentView, canvas);
   });
 
-  initializeAndSizeView(view, canvas);
+  _initializeAndSizeView(view, canvas);
   diagram.addOwnedView(view);
   
-  _createdItemViewsCache[model._id] = view;
+  createdItemViewsCache[model._id] = view;
   return view;
 };
 
@@ -275,9 +289,10 @@ function createTemplateView(model, diagram, canvas) {
   * @param {UMLClassDiagram} templatesDiagram diagram for the templates
   * @param {UMLPackageDiagram} templateFoldersDiagram diagram for the template folders
   * @param {Canvas} canvas the canvas for drawing and sizing the view
+  * @param {object} createdItemViewsCache map of item IDs to their created views
   * @returns {UMLPackage}
  */
-function createFolderModel(jsonFolder, parentModel, templatesDiagram, templateFoldersDiagram, canvas) {
+function _createFolderModel(jsonFolder, parentModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache) {
   var model = new type.UMLPackage();
   model._type = "UMLPackage";
   model._id = jsonFolder.ReferenceID;
@@ -285,7 +300,7 @@ function createFolderModel(jsonFolder, parentModel, templatesDiagram, templateFo
   model.name = jsonFolder.Name;
   // TODO: Move the creation of the child models out into a separate function called from this function's caller
   model.ownedElements = jsonFolder.Children.map(function (jsonItem) {
-    var view = createItemModelAndView(jsonItem, model, templatesDiagram, templateFoldersDiagram, canvas);
+    var view = _createItemModelAndView(jsonItem, model, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
     return view.model;
   });
 
@@ -298,9 +313,10 @@ function createFolderModel(jsonFolder, parentModel, templatesDiagram, templateFo
   * @param {UMLPackage} model the model for the package
   * @param {UMLDiagram} diagram the diagram to display the view
   * @param {Canvas} canvas the canvas for drawing and sizing the view
+  * @param {object} createdItemViewsCache map of item IDs to their created views
   * @returns {UMLPackageView}
  */
-function createFolderView(model, diagram, canvas) {
+function _createFolderView(model, diagram, canvas, createdItemViewsCache) {
   var view = new type.UMLPackageView();
   view._type = "UMLPackageView";
   view.model = model;
@@ -309,10 +325,10 @@ function createFolderView(model, diagram, canvas) {
     subView.model = model;
   });
 
-  initializeAndSizeView(view, canvas);
+  _initializeAndSizeView(view, canvas);
   diagram.addOwnedView(view);
 
-  _createdItemViewsCache[model._id] = view;
+  createdItemViewsCache[model._id] = view;
   return view;
 };
 
@@ -322,11 +338,12 @@ function createFolderView(model, diagram, canvas) {
   * @param {Model} parentModel the parent model
   * @param {UMLDiagram} diagram the diagram to display the view
   * @param {Canvas} canvas the canvas for drawing and sizing the view
+  * @param {object} createdItemViewsCache map of item IDs to their created views
   * @returns {View}
  */
-function createTemplateModelAndView(jsonTemplate, parentModel, diagram, canvas) {
-  var model = createTemplateModel(jsonTemplate, parentModel);
-  var view = createTemplateView(model, diagram, canvas);
+function _createTemplateModelAndView(jsonTemplate, parentModel, diagram, canvas, createdItemViewsCache) {
+  var model = _createTemplateModel(jsonTemplate, parentModel);
+  var view = _createTemplateView(model, diagram, canvas, createdItemViewsCache);
 
   return view;
 };
@@ -338,10 +355,12 @@ function createTemplateModelAndView(jsonTemplate, parentModel, diagram, canvas) 
   * @param {UMLClassesDiagram} templatesDiagram the diagram for the templates
   * @param {UMLPackageDiagram} templateFoldersDiagram the diagram for the template folders
   * @param {Canvas} canvas the canvas for drawing and sizing the view 
+  * @param {object} createdItemViewsCache map of item IDs to their created views
+  * @returns {View}
  */
-function createFolderModelAndView(jsonFolder, parentModel, templatesDiagram, templateFoldersDiagram, canvas) {
-  var model = createFolderModel(jsonFolder, parentModel, templatesDiagram, templateFoldersDiagram, canvas);
-  var view = createFolderView(model, templateFoldersDiagram, canvas);
+function _createFolderModelAndView(jsonFolder, parentModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache) {
+  var model = _createFolderModel(jsonFolder, parentModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
+  var view = _createFolderView(model, templateFoldersDiagram, canvas, createdItemViewsCache);
   return view;
 };
 
@@ -352,13 +371,45 @@ function createFolderModelAndView(jsonFolder, parentModel, templatesDiagram, tem
  * @param {UMLClassDiagram} templatesDiagram the templates diagram to add templates to
  * @param {UMLPackagesDiagram} templateFoldersDiagram the template folders diagram to add template folders to
  * @param {Canvas} canvas the canvas for drawing and sizing the view
+ * @param {object} createdItemViewsCache map of item IDs to their created views
  * @returns {View}
  */
-function createItemModelAndView(jsonItem, parentModel, templatesDiagram, templateFoldersDiagram, canvas) {
+function _createItemModelAndView(jsonItem, parentModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache) {
   return jsonItem.IsTemplate
-    ? createTemplateModelAndView(jsonItem, parentModel, templatesDiagram, canvas)
-    : createFolderModelAndView(jsonItem, parentModel, templatesDiagram, templateFoldersDiagram, canvas);
+    ? _createTemplateModelAndView(jsonItem, parentModel, templatesDiagram, canvas, createdItemViewsCache)
+    : _createFolderModelAndView(jsonItem, parentModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
 };
+
+/**
+ * Gets a flat array of JSON items from the given JSON item
+ * @param {JsonItem} jsonItem the item to get the array of JSON items from
+ * @returns {Array<JsonItem>}
+ */
+function _getJsonItems(jsonItem) {
+  return jsonItem.IsTemplate
+    ? [ jsonItem ]
+    : [ jsonItem ]
+        .concat(jsonItem.Children
+          .map(_getJsonItems))
+        .reduce(function(result, entry) { return result.concat(entry); }, []);
+};
+
+/**
+ * Gets a flat array of JSON templates from the given JSON item
+ * @param {JsonItem} jsonItem the item to get the array of JSON templates from
+ * @returns {Array<JsonTemplate>}
+ */
+function _getJsonTemplates(jsonItem) {
+  return jsonItem.IsTemplate
+    ? [ jsonItem ]
+    : jsonItem.Children
+        .map(_getJsonTemplates)
+        .reduce(function(result, entry) { return result.concat(entry); }, []);
+};
+
+/*
+ * PUBLIC FUNCTIONS
+ */
 
 /**
  * Creates a new Canvas object with the given width, height and context type and then returns it
@@ -379,125 +430,122 @@ function createCanvas(width, height, contextType) {
 }
 
 /**
- * Gets a flat array of JSON items from the given JSON item
- * @param {JsonItem} jsonItem the item to get the array of JSON items from
- * @returns {Array<JsonItem>}
+ * Reverse engineers the mdj filefor the given architecture and returns the local path to the resulting file
+ * @param {object} architecture the architecture to generate the mdj file for
+ * @param {String} outputFilePath the path to the output file
+ * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
+ * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
+ * @returns {String}
  */
-function getJsonItems(jsonItem) {
-  return jsonItem.IsTemplate
-    ? [ jsonItem ]
-    : [ jsonItem ]
-        .concat(jsonItem.Children
-          .map(getJsonItems))
-        .reduce(function(result, entry) { return result.concat(entry); }, []);
-};
+var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptions, canvas) => {
+  /* 0) ASSERT AND FORMAT ARGUMENTS */
 
-/**
- * Gets a flat array of JSON templates from the given JSON item
- * @param {JsonItem} jsonItem the item to get the array of JSON templates from
- * @returns {Array<JsonTemplate>}
- */
-function getJsonTemplates(jsonItem) {
-  return jsonItem.IsTemplate
-    ? [ jsonItem ]
-    : jsonItem.Children
-        .map(getJsonTemplates)
-        .reduce(function(result, entry) { return result.concat(entry); }, []);
-};
+  // architecture is required and must have an initialized Items property
+  if (!architecture || !architecture.Items) {
+    throw "The JSON architecture is required and the JSON Items property must be intialized.";
+  } 
 
-/*
- * BEGIN COMMAND EXECUTION
- */
-
-var url = "http://local.sitecoreuml.com/sitecoreuml/template2/gettemplatearchitecture";
-request.get(url, (error, response, body) => {
-  if (error) {
-    console.error(error);
-    return;
+  // outputFilePath is required
+  if (!outputFilePath) {
+    throw "The output file path is required";
   }
 
-  var json = JSON.parse(body);
+  // merge the user specified layout options with the defaults
+  layoutOptions = extend(new LayoutOptions(), layoutOptions);
 
-  if (!json.Success) {
-    console.error("An error occurred!");
-    console.error(json.ErrorMessage);
-  }
+  // make the canvas fallback to a new canvas with default values
+  canvas = canvas || createCanvas();
 
+  /* 1) CREATE BASIC ENTITIES: PROJECT, ROOT MODEL, TEMPLATES DIAGRAM, AND CLASS DIAGRAMS */
+
+  // create the projet
   var project = new type.Project();
   project._type = "Project";
-  project.name = commander.projectname || "Untitled";
+  project.name = "Untitled"; // TODO: move to option
 
+  // create the root model
   var rootModel = new type.UMLModel();
   rootModel._type = "UMLModel";
   rootModel._parent = project;
-  rootModel.name = "Sitecore Templates Data Model";
+  rootModel.name = "Sitecore Templates Data Model"; // TODO: move to option
 
   project.ownedElements = [rootModel];
 
+  // create the templates diagram
   var templatesDiagram = new type.UMLClassDiagram();
   templatesDiagram._type = "UMLClassDiagram";
   templatesDiagram._parent = rootModel;
-  templatesDiagram.name = "Templates Diagram";
+  templatesDiagram.name = "Templates Diagram"; // TODO: move to option
   rootModel.ownedElements.push(templatesDiagram);
 
+  // create the template folder's diagram
   var templateFoldersDiagram = new type.UMLPackageDiagram();
   templateFoldersDiagram._type = "UMLPackageDiagram";
   templateFoldersDiagram._parent = rootModel;
-  templateFoldersDiagram.name = "Template Folders Diagram";
+  templateFoldersDiagram.name = "Template Folders Diagram"; // TODO: move to option
   rootModel.ownedElements.push(templateFoldersDiagram);
 
-  var architecture = JSON.parse(json.Data);
+  /* 2) CREATE ALL OF THE MODELS AND VIEWS FOR THE ITEMS */
 
-  // create the canvas to use for drawing/sizing
-  var canvas = createCanvas();
+  // create the map object to use for storing the mappings from the created items' IDs to their views
+  var createdItemViewsCache = {};
 
   // creates the folder, template and field models and views
   architecture.Items.forEach(function (jsonItem) {
-    createItemModelAndView(jsonItem, rootModel, templatesDiagram, templateFoldersDiagram, canvas);
+    _createItemModelAndView(jsonItem, rootModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
   });
+
+  /* 3) CREATE ALL OF THE ITEM RELATIONSHIP MODELS AND VIEWS */
 
   // get all the json items in a flat array and then create the relationships for the items
   // *** this needs to run in a separate loop to ensure all items have already been created
   architecture.Items
-    .map(getJsonItems)
+    .map(_getJsonItems)
     .reduce(function(result, entry) { return result.concat(entry); }, [])
     .forEach(function (jsonItem) {
-      var view = _createdItemViewsCache[jsonItem.ReferenceID];
+      var view = createdItemViewsCache[jsonItem.ReferenceID];
       
       // create the base template relationship models and views
       if (jsonItem.IsTemplate) {
         jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
-          var baseTemplateView = _createdItemViewsCache[jsonBaseTemplateId];
+          var baseTemplateView = createdItemViewsCache[jsonBaseTemplateId];
 
-          var model = createBaseTemplateRelationshipModel(view.model, baseTemplateView.model);
+          var model = _createBaseTemplateRelationshipModel(view.model, baseTemplateView.model);
 
-          createBaseTemplateRelationshipView(model, view, baseTemplateView, templatesDiagram, canvas);
+          _createBaseTemplateRelationshipView(model, view, baseTemplateView, templatesDiagram, canvas);
         });
       // create the parent-child relationship views
       } else { 
         var parentModel = view.model._parent;
-        var parentView = _createdItemViewsCache[parentModel._id];
+        var parentView = createdItemViewsCache[parentModel._id];
 
         // may not have a parent if it is a root folder (e.g. Foundation, Feature or Project, in Helix)
         if (!parentView) { 
           return;
         }
-        createContainmentRelationshipView(view, parentView, templateFoldersDiagram, canvas);
+        _createContainmentRelationshipView(view, parentView, templateFoldersDiagram, canvas);
       }
     });
 
-  // layout the diagrams
-  var layoutDirection = commander.layoutdirection || "";
-  templatesDiagram.layout(layoutDirection);
-  templateFoldersDiagram.layout(layoutDirection);
+  /* 4) CLEANUP/REFORMAT THE DIAGRAMS */
 
-  // save the project to the output location
-  commander.output = commander.output || "output.mdj";
+  // layout the diagrams
+  templatesDiagram.layout(layoutOptions.TemplatesDiagram);
+  templateFoldersDiagram.layout(layoutOptions.TemplateFoldersDiagram);
 
   // serialize the project to JSON
   var mdjcontent = mdjson.Repository.writeObject(project);
 
-  fs.writeFile(commander.output, mdjcontent, "utf8");
-  console.log("Done");
-});
+  fs.writeFileSync(outputFilePath, mdjcontent, "utf8");
+  console.log(`MDJ created at path "${outputFilePath}"`);
 
+  return outputFilePath;
+};
+
+/**
+ * EXPORTS
+ */
+
+exports.LayoutOptions = LayoutOptions;
+exports.createCanvas = createCanvas;
+exports.reverseEngineerMetaDataJsonFile = reverseEngineerMetaDataJsonFile;
