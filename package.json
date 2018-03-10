@@ -1,28 +1,21 @@
 {
-    "name": "sitecoreuml-cli",
-    "version": "0.0.0",
-    "description": "CLI tool for generating diagrams and documentation with SitecoreUML without requiring the StarUML IDE",
-    "main": "SitecoreUML-CLI.js",
-    "scripts": {},
-    "repository": {
-    },
-    "author": "Zachary Kniebel (@Zachary_Kniebel on Sitecore Slack)",
-    "dependencies": {
-        "commander": "2.5.0",
-        "request": "2.83.0",
-        "metadata-json": "0.9.11",
-        "mdgen": "0.9.3",
-        "fs": "0.0.1-security",
-        "dagre": "0.4.5",
-        "graphlib": "0.7.4",
-        "canvas": "^1.6.9"
-    },
-    "bugs": {
-    },
-    "preferGlobal": true,
-    "src": {
-        "sitecore-cli": "bin/sitecoreuml-cli.js",
-        "sitecore-cli-gettemplatesjson": "bin/sitecoreuml-cli-gettemplatesjson.js",
-        "sitecore-cli-generatemdjfile": "bin/sitecoreuml-cli-generatemdjfile.js"
-    }
+  "name": "sitecore-dxg-server",
+  "version": "0.0.1",
+  "description": "Sitecore Document Experience Generator Server",
+  "main": "main.js",
+  "scripts": {},
+  "author": "Zachary Kniebel",
+  "devDependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "metadata-json": "0.9.11",
+    "fs": "0.0.1-security",
+    "dagre": "0.4.5",
+    "graphlib": "0.7.4",
+    "canvas-prebuilt": "v2.0.0-alpha.5",
+    "extend": "3.0.1",
+    "guid": "0.0.12",
+    "left-pad": "1.2.0",
+    "archiver": "2.1.1"
+  }
 }

@@ -26,11 +26,12 @@ const path = require("path");
 const mdjson = require("metadata-json");
 const nodeCanvas = require("canvas-prebuilt");
 const extend = require("extend");
-const archiver = require("archiver");
-
 
 const _dagre = require("dagre");
 const _graphlib = require("graphlib");
+
+// local
+const fileUtils = require("./utils/file-utils.js");
 
 /*
  * GLOBALS
@@ -574,21 +575,12 @@ var generateHtmlDocumentationArchive = (mdjFilePath, docFolderPath, archiveFileP
   generateHtmlDocumentation(mdjFilePath, docFolderPath);
 
   // archive the docs
-  var archive = archiver("zip");
-  var archiveFileOutput = fs.createWriteStream(archiveFilePath);
-
-  // on successful close, execute the success callback function
-  archiveFileOutput.on("close", successCallback);
-
-  // add the html docs output folder to the archive
-  archive.pipe(archiveFileOutput);
-  archive.directory(docFolderPath, false);
-
-  // on error, execute the error callback function
-  archive.on("error", errorCallback);
-
-  // finalize and close the archive
-  archive.finalize();
+  fileUtils.createArchive(
+    docFolderPath,
+    archiveFilePath,
+    successCallback,
+    errorCallback
+  );
 };
 
 /**
