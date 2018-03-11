@@ -24,7 +24,7 @@ const path = require("path");
 
 // third-party
 const mdjson = require("metadata-json");
-const nodeCanvas = require("canvas-prebuilt");
+const nodeCanvas = require("canvas");
 const extend = require("extend");
 
 const _dagre = require("dagre");
