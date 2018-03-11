@@ -32,6 +32,7 @@ const _graphlib = require("graphlib");
 
 // local
 const fileUtils = require("./utils/file-utils.js");
+const logger = require("./logging.js").logger;
 
 /*
  * GLOBALS
@@ -270,7 +271,7 @@ function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
     return subview instanceof type.UMLAttributeCompartmentView;
   });
   if (!attributeCompartmentViews.length) {
-    console.error("UMLAttributeCompartmentView was not found on view for template " + model._id);
+    logger.error("UMLAttributeCompartmentView was not found on view for template " + model._id);
     return;
   }
 
@@ -541,7 +542,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   var mdjcontent = mdjson.Repository.writeObject(project);
 
   fs.writeFileSync(outputFilePath, mdjcontent, "utf8");
-  console.log(`MDJ created at path "${outputFilePath}"`);
+  logger.info(`MDJ created at path "${outputFilePath}"`);
 
   return outputFilePath;
 };
@@ -555,9 +556,9 @@ var generateHtmlDocumentation = (mdjFilePath, outputFolderPath) => {
   try {
     mdjson.loadFromFile(mdjFilePath);
     mdjson.exportToHTML(outputFolderPath, true);
-    console.log(`HTML Documentation Generated at path "${outputFolderPath}"`);
+    logger.info(`HTML Documentation Generated at path "${outputFolderPath}"`);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return;
   }
 };

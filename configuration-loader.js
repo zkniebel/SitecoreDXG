@@ -25,6 +25,7 @@ const path = require("path");
 const extend = require("extend");
 const guid = require("guid");
 const leftPad = require("left-pad");
+const mkdirp = require("mkdirp");
 
 // local
 const settings = require("./settings.js");
@@ -39,13 +40,22 @@ const fileUtils = require("./utils/file-utils.js");
  */
 function SitecoreDXGConfiguration() {
     /**
-     * @property The port number that the API should listen on
+     * @property The port number that the API should listen on (Default: 8023)
      */
     this.Port = 8023;
     /**
-     * @property Holds the root path where output files are stored (Default: C:\\SitecoreDXG)
+     * @property Holds the root path where output files are stored (Default: "C:\\SitecoreDXG\\Work")
      */
-    this.OutputDirectoryPath = "C:\\SitecoreDXG";
+    this.OutputDirectoryPath = "C:\\SitecoreDXG\\Work";    
+    /**
+     * @property Holds the path to where log files will be written (Default: "C:\\SitecoreDXG\\Logs")
+     */
+    this.LogsDirectoryPath = "C:\\SitecoreDXG\\Logs";
+    /**
+     * @property Holds the minimum priority level of log messages for them to be written to the log (Default: "info")
+     */
+    this.LogLevel = "info";
+
 
     /** 
      * @method createBucketedOutputSubdirectoryPath Creates the folders in the bucketed output subdirectory path (if they don't already exist) and returns the full path 
@@ -53,7 +63,7 @@ function SitecoreDXGConfiguration() {
      * @returns {string}
      */
     this.createBucketedOutputSubdirectoryPath = (includeUniqueFolder) => {
-        var now = new Date(Date.now());
+        var now = new Date();
         var bucketPath = this.OutputDirectoryPath;
 
         // get/create the year folder
@@ -79,9 +89,18 @@ function SitecoreDXGConfiguration() {
      * @method _initialize Initializes the configuration object 
      */
     this._initialize = () => {
-        fileUtils.createDirectorySync(this.OutputDirectoryPath);
+        // ensure the logs directory path exists
+        mkdirp.sync(_configuration.LogsDirectoryPath);
+        // ensure the output directory path exists
+        mkdirp.sync(this.OutputDirectoryPath);
     };
 };
+
+/**
+ * PROPERTIES
+ */
+
+var _configuration = undefined;
 
 /**
  * FUNCTIONS
@@ -92,10 +111,14 @@ function SitecoreDXGConfiguration() {
  * @returns {SitecoreDXGConfiguration}
  */
 function getConfiguration() {
-    var config = extend(new SitecoreDXGConfiguration(), settings);
-    config._initialize();
+    if (_configuration) {
+        return _configuration;
+    }
 
-    return config;
+    _configuration = extend(new SitecoreDXGConfiguration(), settings);
+    _configuration._initialize();
+
+    return _configuration;
 };
 
 /**

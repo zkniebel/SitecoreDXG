@@ -23,10 +23,13 @@ const path = require("path");
 
 // third-party
 const express = require("express");
-const bodyParser = require('body-parser');
+const bodyParser = require("body-parser");
+const winston = require("winston");
+
 // local
 const configurationLoader = require("./configuration-loader.js");
 const mdjre = require("./mdj-reverseengineer.js");
+const logger = require("./logging.js").logger;
 
 /**
  * CONSTANTS
@@ -72,14 +75,14 @@ router.post("/generate/mdj", jsonParser, (request, response) => {
     try {
         var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(request.body.Data, targetFilePath);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"` });
         return;
     }
 
     response.sendFile(targetFileName, { root: targetFolderPath }, function (error) {
         if (error) {
-            console.error(error);
+            logger.error(error);
             return;
         }
     });
@@ -108,26 +111,26 @@ router.post("/generate/documentation", jsonParser, (request, response) => {
             targetHtmlDocFolderPath,
             targetArchiveFilePath,
             function () {
-                console.log(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
+                logger.info(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
 
                 response.sendFile(targetArchiveFileName, { root: targetFolderPath }, function (error) {
                     if (error) {
-                        console.error(error);
+                        logger.error(error);
                         return;
                     }
                 });
             },
             function (error) {
-                console.error(error);
+                logger.error(error);
                 response.json({ "Success": false, "ErrorMessage": `Error while archiving "${error}"` });
                 return;
             });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"` });
         return;
     }
 });
 
 // start listening
-app.listen(port, () => console.log(`Sitecore DXG Service Started. Listening on port ${port}`));
+app.listen(port, () => logger.info(`Sitecore DXG Service Started. Listening on port ${port}`));

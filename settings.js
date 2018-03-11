@@ -19,6 +19,8 @@
  */
 
 exports = {
-    Port: 8023,
-    OutputDirectoryPath: "C:\\SitecoreDXG",
+    Port:                   8023,
+    OutputDirectoryPath:    "C:\\SitecoreDXG\\Work",
+    LogsDirectoryPath:      "C:\\SitecoreDXG\\Logs",
+    LogInfo:                "info"
 };
