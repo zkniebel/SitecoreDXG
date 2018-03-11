@@ -10,7 +10,7 @@ The easiest way to install the node-canvas dependencies is to install node.js, t
 
 **IMPORTANT:** If you installed your dependencies with chocolatey and/or used the standalone VS 2015 build tools installer then you may need to do the following:
 
-* Run `npm config set msvs_version 2012 --global` before trying to install node-canvas to avoid "The tools version "2.0" is unrecognized. Available tools versions are..." errors
+* Run `npm config set msvs_version 2015 --global` before trying to install node-canvas to avoid "The tools version "2.0" is unrecognized. Available tools versions are..." errors
 * Install from the standalone VS 2015 Build Tools installer the 8.1 SDK (it's big but required)
 
 
