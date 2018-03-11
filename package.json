@@ -4,7 +4,7 @@
   "description": "Sitecore Document Experience Generator Server",
   "main": "main.js",
   "scripts": {
-    "install-windows-service": "winser -i -a -c -n 'Sitecore DXG Server'",
+    "install-windows-service": "winser -i -a -c -n \"Sitecore DXG Server\"",
     "uninstall-windows-service": "winser -r -x -s -c"
   },
   "author": "Zachary Kniebel",
