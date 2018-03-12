@@ -556,6 +556,7 @@ var generateHtmlDocumentation = (mdjFilePath, outputFolderPath) => {
   try {
     mdjson.loadFromFile(mdjFilePath);
     mdjson.exportToHTML(outputFolderPath, true);
+    mdjson.Repository.clear();
     logger.info(`HTML Documentation Generated at path "${outputFolderPath}"`);
   } catch (error) {
     logger.error(error);
