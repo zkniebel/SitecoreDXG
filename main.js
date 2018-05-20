@@ -53,14 +53,14 @@ var jsonParser = bodyParser.json();
  */
 
 // route prefix
-app.use("/sitecore-dxg", router);
+app.use("/sitecoredxg", router);
 
-// url: <domain>:8023/sitecore-dxg/status
+// url: <domain>:8023/sitecoredxg/status
 router.get("/status", (request, response) => {
     response.json({ message: "Online" });
 });
 
-// url: <domain>:8023/sitecore-dxg/generate/mdj
+// url: <domain>:8023/sitecoredxg/generate/mdj
 router.post("/generate/mdj", jsonParser, (request, response) => {
     if (!request.body.Success) {
         response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"` });
@@ -88,7 +88,7 @@ router.post("/generate/mdj", jsonParser, (request, response) => {
     });
 });
 
-// url: <domain>:8023/sitecore-dxg/generate/mdj
+// url: <domain>:8023/sitecoredxg/generate/mdj
 router.post("/generate/documentation", jsonParser, (request, response) => {
     if (!request.body.Success) {
         response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"` });
