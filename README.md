@@ -1,4 +1,4 @@
-# Sitecore Documentation Experience Generator (DXG)
+# SitecoreDXG: The Documentation Experience Generator
 
 The Sitecore Documentation Experience Generator is a proprietary, REST-based version of SitecoreUML that can be used without any GUI and can be called directly from the CI/CD pipeline. Leveraging the open-source APIs associated with StarUML, on which SitecoreUML is based, SitecoreDXG provides support for generating template data model architecture diagrams and HTML documentation from any existing Sitecore instance that has SitecoreUML installed (SitecoreUML 1.3.5+). 
 
