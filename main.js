@@ -48,6 +48,10 @@ const port = configuration.Port;
 // create application/json parser
 var jsonParser = bodyParser.json();
 
+// set request size limits
+app.use(bodyParser.json({limit: '10mb'}));
+app.use(bodyParser.urlencoded({limit: '10mb', extended: true}));
+
 /**
  * REQUEST HANDLERS
  */
