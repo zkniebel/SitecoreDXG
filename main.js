@@ -137,4 +137,7 @@ router.post("/generate/documentation", jsonParser, (request, response) => {
 });
 
 // start listening
-app.listen(port, () => logger.info(`Sitecore DXG Service Started. Listening on port ${port}`));
+const server = app.listen(port, () => logger.info(`Sitecore DXG Service Started. Listening on port ${port}`));
+
+// increase the timeout to 30 minutes
+server.timeout = 1800000; 
