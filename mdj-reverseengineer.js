@@ -24,7 +24,7 @@ const path = require("path");
 
 // third-party
 const mdjson = require("metadata-json");
-const nodeCanvas = require("canvas");
+const nodeCanvas = require("canvas").createCanvas;
 const extend = require("extend");
 
 const _dagre = require("dagre");
@@ -122,6 +122,44 @@ function _createContainmentRelationshipView(childView, parentView, diagram, canv
 
   view.initialize(canvas);
   diagram.addOwnedView(view);
+  return view;
+};
+
+/**
+ * Creates and returns the model for the dependency from one model to another 
+ * @param {UMLInterface} sourceModel the source model 
+ * @param {UMLInterface} targetModel the model that the sourceModel depends on
+ * @returns {UMLDependency} 
+ */
+function _createDependencyRelationshipModel(sourceModel, targetModel) {
+  var model = new type.UMLDependency();
+  model._type = "UMLDependency";
+  model._parent = sourceModel;
+  model.source = sourceModel;
+  model.target = targetModel;
+
+  sourceModel.ownedElements.push(model);
+  return model;
+};
+
+/**
+ * Creates and returns the view for the dependency from one model to another
+ * @param {UMLDependency} model the model of the dependency
+ * @param {View} sourceView the view of the source model
+ * @param {View} targetView the view of the model that the sourceView's model depends on
+ * @param {UMLDiagram} diagram the diagram to display the view on
+ * @param {Canvas} canvas the canvas for drawing and sizing the view
+ * @returns {UMLDependencyView}
+ */
+function _createDependencyRelationshipView(model, sourceView, targetView, diagram, canvas) {
+  var view = new type.UMLDependencyView();
+  view._type = "UMLDependencyView";
+  view.model = model;
+  view.tail = sourceView;
+  view.head = targetView;
+
+  diagram.addOwnedView(view);
+  view.initialize(canvas);
   return view;
 };
 
@@ -412,6 +450,292 @@ function _getJsonTemplates(jsonItem) {
       .reduce(function (result, entry) { return result.concat(entry); }, []);
 };
 
+/**
+ * Generates the helix diagrams for the architecture based on the given documentation configuration
+ * @param {object} documentationConfiguration 
+ * @param {Canvas} canvas 
+ * @param {object} createdItemViewsCache 
+ * @param {object} jsonItemIDsCache 
+ */
+function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemViewsCache, jsonItemIDsCache) {  
+  // 1) CREATE THE HELIX ARCHITECTURE OBJECT
+  var helixArchitecture = {};
+
+  var __getLayerModule = function(item) { 
+    var jsonItem = jsonItemIDsCache[item.ReferenceID]; // note that the input item is a lean version of the JsonFolder object, without children
+    return {
+      RootJsonItem: jsonItem,
+      RootModel: createdItemViewsCache[item.ReferenceID].model,
+      JsonTemplates: _getJsonTemplates(jsonItem)
+    };
+  };  
+
+  var __getLayerByID = function(id) {
+    return helixArchitecture.FoundationLayer.ReferenceID == id 
+      ? helixArchitecture.FoundationLayer
+      : helixArchitecture.FeatureLayer.ReferenceID == id 
+        ? helixArchitecture.FeatureLayer
+        : helixArchitecture.ProjectLayer; // assumes ID is always known
+  };
+
+  var rootView;
+
+  // 2) INITIALIZE THE FOUNDATION LAYER
+  helixArchitecture.FoundationLayer = {};
+  if (documentationConfiguration.FoundationLayerRoot) {
+    helixArchitecture.FoundationLayer.ReferenceID = documentationConfiguration.FoundationLayerRoot.ReferenceID;
+  }
+  helixArchitecture.FoundationLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FoundationLayer.ReferenceID];
+  rootView = createdItemViewsCache[helixArchitecture.FoundationLayer.ReferenceID];
+  helixArchitecture.FoundationLayer.RootModel = rootView ? rootView.model : undefined;
+  helixArchitecture.FoundationLayer.Modules = documentationConfiguration.FoundationModuleFolders
+    .map(function(leanJsonItem) {
+      var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+      return __getLayerModule(jsonItem);
+    });
+
+  // 3) INITIALIZE THE FEATURE LAYER
+  helixArchitecture.FeatureLayer = {};
+  
+  if (documentationConfiguration.FeatureLayerRoot) {
+    helixArchitecture.FeatureLayer.ReferenceID = documentationConfiguration.FeatureLayerRoot.ReferenceID;
+  }
+  helixArchitecture.FeatureLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FeatureLayer.ReferenceID];
+  rootView = createdItemViewsCache[helixArchitecture.FeatureLayer.ReferenceID];
+  helixArchitecture.FeatureLayer.RootModel = rootView ? rootView.model : undefined;
+  helixArchitecture.FeatureLayer.Modules = documentationConfiguration.FeatureModuleFolders
+    .map(function(leanJsonItem) {
+      var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+      return __getLayerModule(jsonItem);
+    });
+
+  // 4) INITIALIZE THE PROJECT LAYER
+  helixArchitecture.ProjectLayer = {};
+  if (documentationConfiguration.ProjectLayerRoot) {
+    helixArchitecture.ProjectLayer.ReferenceID = documentationConfiguration.ProjectLayerRoot.ReferenceID;
+  }
+  helixArchitecture.ProjectLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.ProjectLayer.ReferenceID];
+  rootView = createdItemViewsCache[helixArchitecture.ProjectLayer.ReferenceID];
+  helixArchitecture.ProjectLayer.RootModel = rootView ? rootView.model : undefined;
+  helixArchitecture.ProjectLayer.Modules = documentationConfiguration.ProjectModuleFolders
+    .map(function(leanJsonItem) {
+      var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+      return __getLayerModule(jsonItem);
+    });
+
+  // 5) INITIALIZE THE HIERARCHY INDEX
+  var templateHierarchyIndex = {};
+  
+  var __initializeHierarchyIndexForLayer = function(layer) {
+    layer.Modules.forEach(function(helixModule) {
+      helixModule.JsonTemplates.forEach(function(jsonTemplate) {
+        templateHierarchyIndex[jsonTemplate.ReferenceID] = {
+          JsonTemplate: jsonTemplate, 
+          ModuleID: helixModule.RootJsonItem.ReferenceID, 
+          LayerID: layer.ReferenceID 
+        };
+      });    
+    });
+  };
+
+  __initializeHierarchyIndexForLayer(helixArchitecture.FoundationLayer);
+  __initializeHierarchyIndexForLayer(helixArchitecture.FeatureLayer);
+  __initializeHierarchyIndexForLayer(helixArchitecture.ProjectLayer);
+
+  // 6) CREATE DIAGRAMS FOR EACH LAYER & INITIALIZE TEMPLATE DEPENDENCIES CACHE
+  var templateDependenciesCache = {};
+
+  var __createDiagramsForLayer = function(layer) {
+
+    // create the module and module templates diagrams
+    layer.Modules.forEach(function(helixModule) {
+      // MODULE DIAGRAM
+
+      // create a cache to hold created views for the module diagram
+      var createdModuleDiagramItemViewsCache = {};
+
+      // create the class diagram for the module
+      var moduleDiagram = new type.UMLClassDiagram();
+      moduleDiagram._type = "UMLClassDiagram";
+      moduleDiagram._parent =  helixModule.RootModel;
+      moduleDiagram.name = `${helixModule.RootJsonItem.Name} Module Diagram`; 
+      helixModule.RootModel.ownedElements.push(moduleDiagram);
+
+      // add the view for the layer root package to the diagram
+      var layerRootView = _createFolderView(
+        layer.RootModel,
+        moduleDiagram,
+        canvas,
+        createdModuleDiagramItemViewsCache);
+
+      // add the view for the module root package to the diagram
+      var moduleRootView = _createFolderView(
+        helixModule.RootModel,
+        moduleDiagram,
+        canvas,
+        createdModuleDiagramItemViewsCache);
+
+      _createContainmentRelationshipView(moduleRootView, layerRootView, moduleDiagram, canvas);
+
+      // add the dependencies for the module
+      helixModule.JsonTemplates
+        .forEach(function (jsonTemplate) { 
+          // get/add dependencies from/to cache for each template in the module
+          var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID];
+          if (!dependencies) {
+            dependencies = jsonTemplate.BaseTemplates
+              .map(function(baseTemplateId) { 
+                return {
+                  SourceJsonTemplate: jsonTemplate,
+                  TargetHierarchyModel: templateHierarchyIndex[baseTemplateId]
+                };
+              })
+              .filter(function(dependency) { 
+                return dependency && dependency.TargetHierarchyModel.ModuleID != helixModule.RootJsonItem.ReferenceID;
+              });
+
+            templateDependenciesCache[jsonTemplate.ReferenceID] = dependencies;
+          }
+          
+          // set up the dependency views cache for the module
+          var createdDependencyViewCache = {}; // cache for UMLDependencyView objects only
+          var createdDependencyTargetViewCache = {}; // cache for all other target objects (layers and modules)
+
+          // create the module view
+          var sourceView = _createFolderView(
+            helixModule.RootModel,
+            moduleDiagram,
+            canvas,
+            createdDependencyTargetViewCache);
+
+          dependencies.forEach(function(dependency) {
+            // create the documentation entry
+            var documentationEntry = "{`" + dependency.SourceJsonTemplate.Path + "`} -> {`" + dependency.TargetHierarchyModel.JsonTemplate.Path + "`}";  
+            
+            var targetID = dependency.TargetHierarchyModel.ModuleID;
+            var targetView = createdDependencyTargetViewCache[targetID];
+            // if dependency has already been added to the diagram then jsut update the documentation (don't add duplicates)
+            if (targetView) {
+              dependencyModel = createdDependencyViewCache[targetID];
+
+              // append the dependency info to the existing documentaion
+              dependencyModel.documentation += "  \n" + documentationEntry;
+            } else {
+              // add the dependency to the diagram
+              targetModel = createdItemViewsCache[targetID].model;
+
+              // create the dependency model
+              var dependencyModel = _createDependencyRelationshipModel(
+                helixModule.RootModel, 
+                targetModel);
+              
+              // update the documentation for the dependency
+              dependencyModel.documentation = documentationEntry;
+
+              // add the view for the target module and it's containing layer to the diagram
+              var mustCreateModuleView = false;
+              if (!createdDependencyTargetViewCache[dependency.LayerID]) {
+                // add the dependency's layer view
+                var dependencyLayerRootView = _createFolderView(
+                  __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel,
+                  moduleDiagram,
+                  canvas,
+                  createdDependencyTargetViewCache);
+              }
+
+              // add the view for the dependency's module root package to the diagram
+              targetView = _createFolderView(
+                targetModel,
+                moduleDiagram,
+                canvas,
+                createdDependencyTargetViewCache);
+
+              // create the containment view from the dependency's module to its layer
+              _createContainmentRelationshipView(targetView, dependencyLayerRootView, moduleDiagram, canvas);
+
+              // create the dependency view
+              var dependencyView = _createDependencyRelationshipView(dependencyModel, sourceView, targetView, moduleDiagram, canvas);
+              createdDependencyViewCache[targetID] = dependencyView;
+            };
+          });
+        });
+
+      // layout the diagram  
+      moduleDiagram.layout(LayoutOptions.ModuleDiagram); // TODO: move this to separate option
+
+
+      // // MODULE TEMPLATES DIAGRAM (showing the templates of the module and their relationship to all base templates)
+
+      // // create a cache to hold created views for the module diagram
+      // var createdModuleTemplatesDiagramItemViewsCache = {};
+
+      // // create the class diagram for the module
+      // var moduleTemplatesDiagram = new type.UMLClassDiagram();
+      // moduleTemplatesDiagram._type = "UMLClassDiagram";
+      // moduleTemplatesDiagram._parent =  helixModule.RootModel;
+      // moduleTemplatesDiagram.name = `${helixModule.Name} Module Diagram`; 
+      // helixModule.RootModel.ownedElements.push(moduleTemplatesDiagram);
+
+      // // add the view for the layer root package to the diagram
+      // var layerRootView = _createFolderView(
+      //   layer.RootModel,
+      //   moduleTemplatesDiagram,
+      //   canvas,
+      //   createdModuleTemplatesDiagramItemViewsCache);
+
+      // // add the view for the module root package to the diagram
+      // var moduleRootView = _createFolderView(
+      //   helixModule.RootModel,
+      //   moduleTemplatesDiagram,
+      //   canvas,
+      //   createdModuleTemplatesDiagramItemViewsCache);
+
+      // _createContainmentRelationshipView(moduleRootView, layerRootView, moduleDiagram, canvas);
+
+
+      // // TODO: add dependencies
+
+
+      // // layout the diagram  
+      // moduleTemplatesDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
+    });
+
+
+  //   // LAYER DIAGRAM
+
+  //   // create a cache to hold created views for the layer diagram
+  //   var createdLayerItemViewsCache = {};
+  
+  //   // create the class diagram for the layer
+  //   var layerDiagram = new type.UMLClassDiagram();
+  //   layerDiagram._type = "UMLClassDiagram";
+  //   layerDiagram._parent =  layer.RootModel;
+  //   layerDiagram.name = "Foundation Layer Diagram"; 
+  //  layer.RootModel.ownedElements.push(layerDiagram);
+  
+  //   // add the view for the layer root package to the diagram
+  //   var layerRootView = _createFolderView(
+  //     layer.RootModel,
+  //     layerDiagram,
+  //     canvas,
+  //     createdLayerItemViewsCache);
+  
+  
+  
+  //   // TODO LAYER DEPS
+  
+  
+  
+  
+  //   // layout the layer diagram
+  //   layerDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
+  };
+
+  __createDiagramsForLayer(helixArchitecture.FoundationLayer);
+  __createDiagramsForLayer(helixArchitecture.FeatureLayer);
+  __createDiagramsForLayer(helixArchitecture.ProjectLayer);
+};
+
 /*
  * PUBLIC FUNCTIONS
  */
@@ -435,7 +759,7 @@ function createCanvas(width, height, contextType) {
 }
 
 /**
- * Reverse engineers the mdj filefor the given architecture and returns the local path to the resulting file
+ * Reverse engineers the mdj file for the given architecture and returns the local path to the resulting file
  * @param {object} architecture the architecture to generate the mdj file for
  * @param {String} outputFilePath the path to the output file
  * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
@@ -455,6 +779,9 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
     throw "The output file path is required";
   }
 
+  // check if DocumentationConfiguration is present
+  var hasDocConfig = architecture.DocumentationConfiguration || false;
+
   // merge the user specified layout options with the defaults
   layoutOptions = extend(new LayoutOptions(), layoutOptions);
 
@@ -466,7 +793,9 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // create the projet
   var project = new type.Project();
   project._type = "Project";
-  project.name = "Untitled"; // TODO: move to option
+  project.name = architecture.DocumentationConfiguration && architecture.DocumentationConfiguration.DocumentationTitle 
+    ? architecture.DocumentationConfiguration.DocumentationTitle
+    : "Untitled";
 
   // create the root model
   var rootModel = new type.UMLModel();
@@ -492,8 +821,9 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
 
   /* 2) CREATE ALL OF THE MODELS AND VIEWS FOR THE ITEMS */
 
-  // create the map object to use for storing the mappings from the created items' IDs to their views
+  // create the map objects to use for storing the mappings from the created items' IDs to their views and item IDs to JSON items
   var createdItemViewsCache = {};
+  var jsonItemIDsCache = {};
 
   // creates the folder, template and field models and views
   architecture.Items.forEach(function (jsonItem) {
@@ -508,6 +838,8 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
     .map(_getJsonItems)
     .reduce(function (result, entry) { return result.concat(entry); }, [])
     .forEach(function (jsonItem) {
+      jsonItemIDsCache[jsonItem.ReferenceID] = jsonItem;
+      
       var view = createdItemViewsCache[jsonItem.ReferenceID];
 
       // create the base template relationship models and views
@@ -538,6 +870,14 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   templatesDiagram.layout(layoutOptions.TemplatesDiagram);
   templateFoldersDiagram.layout(layoutOptions.TemplateFoldersDiagram);
 
+  /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
+  _generateHelixDiagrams(
+    architecture.DocumentationConfiguration, 
+    canvas, 
+    createdItemViewsCache, 
+    jsonItemIDsCache);
+  
+
   // serialize the project to JSON
   var mdjcontent = mdjson.Repository.writeObject(project);
 
@@ -565,12 +905,12 @@ var generateHtmlDocumentation = (mdjFilePath, outputFolderPath) => {
 };
 
 /**
- * Generates the HTML documentation fo rthe given metadata-json file, zips it and then executes a callback
+ * Generates the HTML documentation for the given metadata-json file, zips it and then executes a callback
  * @param {String} mdjFilePath path to the metadata-json file to generate the docs from
  * @param {String} docFolderPath the output folder location where the uncompressed docs are to be stored
  * @param {String} archiveFilePath the file location where the compressed docs are to be stored
- * @param {String} successCallback the callback to execute after the docs have successfully finished being archived
- * @param {String} errorCallback the callback to execute if the archiving process fails
+ * @param {function} successCallback the callback to execute after the docs have successfully finished being archived
+ * @param {function} errorCallback the callback to execute if the archiving process fails
  */
 var generateHtmlDocumentationArchive = (mdjFilePath, docFolderPath, archiveFilePath, successCallback, errorCallback) => {
   // generate the docs
