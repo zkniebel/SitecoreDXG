@@ -576,6 +576,10 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
         createdModuleDiagramItemViewsCache);
 
       _createContainmentRelationshipView(moduleRootView, layerRootView, moduleDiagram, canvas);
+          
+      // set up the dependency views cache for the module
+      var createdDependencyViewCache = {}; // cache for UMLDependencyView objects only
+      var createdDependencyTargetViewCache = {}; // cache for all other target objects (layers and modules)
 
       // add the dependencies for the module
       helixModule.JsonTemplates
@@ -596,17 +600,6 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
 
             templateDependenciesCache[jsonTemplate.ReferenceID] = dependencies;
           }
-          
-          // set up the dependency views cache for the module
-          var createdDependencyViewCache = {}; // cache for UMLDependencyView objects only
-          var createdDependencyTargetViewCache = {}; // cache for all other target objects (layers and modules)
-
-          // create the module view
-          var sourceView = _createFolderView(
-            helixModule.RootModel,
-            moduleDiagram,
-            canvas,
-            createdDependencyTargetViewCache);
 
           dependencies.forEach(function(dependency) {
             // create the documentation entry
@@ -616,10 +609,10 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
             var targetView = createdDependencyTargetViewCache[targetID];
             // if dependency has already been added to the diagram then jsut update the documentation (don't add duplicates)
             if (targetView) {
-              dependencyModel = createdDependencyViewCache[targetID];
+              var dependencyView = createdDependencyViewCache[targetID];
 
               // append the dependency info to the existing documentaion
-              dependencyModel.documentation += "  \n" + documentationEntry;
+              dependencyView.model.documentation += "  \n" + documentationEntry;
             } else {
               // add the dependency to the diagram
               targetModel = createdItemViewsCache[targetID].model;
@@ -654,7 +647,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               _createContainmentRelationshipView(targetView, dependencyLayerRootView, moduleDiagram, canvas);
 
               // create the dependency view
-              var dependencyView = _createDependencyRelationshipView(dependencyModel, sourceView, targetView, moduleDiagram, canvas);
+              var dependencyView = _createDependencyRelationshipView(dependencyModel, moduleRootView, targetView, moduleDiagram, canvas);
               createdDependencyViewCache[targetID] = dependencyView;
             };
           });
