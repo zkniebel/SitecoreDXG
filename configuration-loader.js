@@ -40,21 +40,67 @@ const fileUtils = require("./utils/file-utils.js");
  */
 function SitecoreDXGConfiguration() {
     /**
-     * @property The port number that the API should listen on (Default: 8023)
-     */
-    this.Port = 8023;
-    /**
-     * @property Holds the root path where output files are stored (Default: "C:\\SitecoreDXG\\Work")
+     * @property The root path where output files are stored (Default: "C:\\SitecoreDXG\\Work")
      */
     this.OutputDirectoryPath = "C:\\SitecoreDXG\\Work";    
     /**
-     * @property Holds the path to where log files will be written (Default: "C:\\SitecoreDXG\\Logs")
+     * @property The path to where log files will be written (Default: "C:\\SitecoreDXG\\Logs")
      */
     this.LogsDirectoryPath = "C:\\SitecoreDXG\\Logs";
     /**
-     * @property Holds the minimum priority level of log messages for them to be written to the log (Default: "info")
+     * @property The minimum priority level of log messages for them to be written to the log (Default: "info")
      */
     this.LogLevel = "info";
+    
+    /**
+     * @property The settings for the triggers
+     */
+    this.Triggers = {
+        /**
+         * @property The settings for the Express trigger
+         */
+        Express: {
+            /**
+             * @property The ID of the Express trigger 
+             */
+            TriggerID: "Express",
+            /**
+             * @property The port number that the API should listen on (Default: 8023)
+             */
+            Port: 8023
+        },
+        /**
+         * @property The settings for the RabbitMQ trigger
+         */
+        RabbitMQ: {  
+            /**
+             * @property The ID of the RabbitMQ trigger 
+             */
+            TriggerID: "RabbitMQ",          
+            /**
+             * @property The connection string used to connect to the queue server
+             */
+            ConnectionString: "amqp://localhost",
+            /**
+             * @property The name of the documentation generation queue
+             */
+            DocumentationGenerationQueueName: "generation_queue__documentation",
+            /**
+             * @property The name of the MDJ file generation queue
+             */
+            MDJGenerationQueueName: "generation_queue__mdj"
+        }
+    };
+
+    /**
+     * @property The port number that the API should listen on (Default: 8023)
+     */
+    this.Port = 8023;
+
+    /**
+     * @property The name of the trigger that is to be used when the server is started
+     */
+    this.Trigger = "RabbitMQ";
 
 
     /** 

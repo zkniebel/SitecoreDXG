@@ -9,20 +9,24 @@
   },
   "author": "Zachary Kniebel",
   "devDependencies": {
+    "archiver": "2.1.1",
     "body-parser": "^1.18.2",
-    "express": "^4.16.2",
-    "metadata-json": "0.9.11",
-    "fs": "0.0.1-security",
+    "canvas": "^2.0.0-alpha.13",
     "dagre": "0.4.5",
-    "graphlib": "0.7.4",
-    "canvas": "1.6.9",
+    "express": "^4.16.2",
     "extend": "3.0.1",
+    "fs": "0.0.1-security",
+    "graphlib": "0.7.4",
     "guid": "0.0.12",
     "left-pad": "1.2.0",
-    "archiver": "2.1.1",
-    "winston": "2.4.1",
-    "winston-daily-rotate-file": "1.7.2",
+    "metadata-json": "0.9.11",
     "mkdirp": "0.5.1",
-    "winser": "1.0.3"
+    "winser": "1.0.3",
+    "winston": "2.4.1",
+    "winston-daily-rotate-file": "1.7.2"
+  },
+  "dependencies": {
+    "amqplib": "^0.5.2",
+    "request": "^2.88.0"
   }
 }
