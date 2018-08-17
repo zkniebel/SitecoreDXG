@@ -18,126 +18,34 @@
  * DEPENDENCIES 
  */
 
-// node
-const path = require("path");
-
 // third-party
-const express = require("express");
-const bodyParser = require("body-parser");
 const winston = require("winston");
 
 // local
 const configurationLoader = require("./configuration-loader.js");
-const mdjre = require("./mdj-reverseengineer.js");
 const logger = require("./logging.js").logger;
+
+// local - triggers
+const triggerManager = require("./triggers/trigger-manager.js").triggerManager;
+const rabbitMQListener= require("./triggers/RabbitMQ/rabbitmq-amqp-listener.js");
+const expressService = require("./triggers/Express/express-service.js");
 
 /**
  * CONSTANTS
  */
 
-const app = express();
-const router = express.Router();
-
 const configuration = configurationLoader.getConfiguration();
-const port = configuration.Port;
 
 /**
- * BODY PARSERS
+ * REGISTER TRIGGERS
  */
 
-// create application/json parser
-var jsonParser = bodyParser.json();
-
-// set request size limits
-app.use(bodyParser.json({limit: '10mb'}));
-app.use(bodyParser.urlencoded({limit: '10mb', extended: true}));
+rabbitMQListener.registerTrigger(triggerManager);
+expressService.registerTrigger(triggerManager);
 
 /**
- * REQUEST HANDLERS
+ * INITIALIZE TRIGGER
  */
 
-// route prefix
-app.use("/sitecoredxg", router);
+triggerManager.initializeTrigger(configuration.Trigger);
 
-// url: <domain>:8023/sitecoredxg/status
-router.get("/status", (request, response) => {
-    response.json({ message: "Online" });
-});
-
-// url: <domain>:8023/sitecoredxg/generate/mdj
-router.post("/generate/mdj", jsonParser, (request, response) => {
-    if (!request.body.Success) {
-        response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"` });
-        return;
-    }
-
-    // create the target file path at which the output file will be stored
-    var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
-    var targetFileName = "Architecture.mdj";
-    var targetFilePath = path.join(targetFolderPath, targetFileName);
-
-    try {
-        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(request.body.Data, targetFilePath);
-    } catch (error) {
-        logger.error(error);
-        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"` });
-        return;
-    }
-
-    response.sendFile(targetFileName, { root: targetFolderPath }, function (error) {
-        if (error) {
-            logger.error(error);
-            return;
-        }
-    });
-});
-
-// url: <domain>:8023/sitecoredxg/generate/mdj
-router.post("/generate/documentation", jsonParser, (request, response) => {
-    if (!request.body.Success) {
-        response.json({ "Success": false, "ErrorMessage": `Request failed with message "${request.ErrorMessage}"` });
-        return;
-    }
-
-    // create the target file path at which the output file will be stored
-    var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
-    var targetMdjFileName = "Architecture.mdj";
-    var targetMdjFilePath = path.join(targetFolderPath, targetMdjFileName);
-    var targetHtmlDocFolderName = "Html_Docs";
-    var targetHtmlDocFolderPath = path.join(targetFolderPath, targetHtmlDocFolderName);
-    var targetArchiveFileName = targetHtmlDocFolderName + ".zip";
-    var targetArchiveFilePath = path.join(targetFolderPath, targetArchiveFileName);
-
-    try {
-        mdjre.reverseEngineerMetaDataJsonFile(request.body.Data, targetMdjFilePath);
-        mdjre.generateHtmlDocumentationArchive(
-            targetMdjFilePath,
-            targetHtmlDocFolderPath,
-            targetArchiveFilePath,
-            function () {
-                logger.info(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
-
-                response.sendFile(targetArchiveFileName, { root: targetFolderPath }, function (error) {
-                    if (error) {
-                        logger.error(error);
-                        return;
-                    }
-                });
-            },
-            function (error) {
-                logger.error(error);
-                response.json({ "Success": false, "ErrorMessage": `Error while archiving "${error}"` });
-                return;
-            });
-    } catch (error) {
-        logger.error(error);
-        response.json({ "Success": false, "ErrorMessage": `Request failed with error "${error}"` });
-        return;
-    }
-});
-
-// start listening
-const server = app.listen(port, () => logger.info(`Sitecore DXG Service Started. Listening on port ${port}`));
-
-// increase the timeout to 30 minutes
-server.timeout = 1800000; 
