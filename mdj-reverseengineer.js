@@ -302,7 +302,7 @@ function _createTemplateModel(jsonTemplate, parentModel) {
 function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
   var view = new type.UMLInterfaceView();
   view._type = "UMLInterfaceView";
-  view.model = model
+  view.model = model;
   view.suppressAttributes = false;
 
   var attributeCompartmentViews = view.subViews.filter(function (subview) {
@@ -314,9 +314,13 @@ function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
   }
 
   var attributeCompartmentView = attributeCompartmentViews[0];
-  model.attributes.forEach(function (fieldModel) {
-    _createFieldView(fieldModel, attributeCompartmentView, canvas);
-  });
+  if (model.attributes) {
+    model.attributes.forEach(function (fieldModel) {
+      _createFieldView(fieldModel, attributeCompartmentView, canvas);
+    });
+  } else {    
+    model.attributes = [];
+  }
 
   _initializeAndSizeView(view, canvas);
   diagram.addOwnedView(view);
@@ -579,7 +583,6 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
           
       // set up the dependency views cache for the module
       var createdDependencyViewCache = {}; // cache for UMLDependencyView objects only
-      var createdDependencyTargetViewCache = {}; // cache for all other target objects (layers and modules)
 
       // add the dependencies for the module
       helixModule.JsonTemplates
@@ -605,17 +608,17 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
             // create the documentation entry
             var documentationEntry = "{`" + dependency.SourceJsonTemplate.Path + "`} -> {`" + dependency.TargetHierarchyModel.JsonTemplate.Path + "`}";  
             
+            // get the dependency view, if it exists
             var targetID = dependency.TargetHierarchyModel.ModuleID;
-            var targetView = createdDependencyTargetViewCache[targetID];
-            // if dependency has already been added to the diagram then jsut update the documentation (don't add duplicates)
-            if (targetView) {
-              var dependencyView = createdDependencyViewCache[targetID];
+            var dependencyView = createdDependencyViewCache[targetID];
 
+            // if dependency has already been added to the diagram then jsut update the documentation (don't add duplicates)
+            if (dependencyView) {
               // append the dependency info to the existing documentaion
               dependencyView.model.documentation += "  \n" + documentationEntry;
             } else {
               // add the dependency to the diagram
-              targetModel = createdItemViewsCache[targetID].model;
+              var targetModel = createdItemViewsCache[targetID].model;
 
               // create the dependency model
               var dependencyModel = _createDependencyRelationshipModel(
@@ -626,22 +629,22 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               dependencyModel.documentation = documentationEntry;
 
               // add the view for the target module and it's containing layer to the diagram
-              var mustCreateModuleView = false;
-              if (!createdDependencyTargetViewCache[dependency.LayerID]) {
+              var dependencyLayerRootView = createdModuleDiagramItemViewsCache[dependency.TargetHierarchyModel.LayerID];
+              if (!dependencyLayerRootView) {
                 // add the dependency's layer view
-                var dependencyLayerRootView = _createFolderView(
+                dependencyLayerRootView = _createFolderView(
                   __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel,
                   moduleDiagram,
                   canvas,
-                  createdDependencyTargetViewCache);
+                  createdModuleDiagramItemViewsCache);
               }
 
               // add the view for the dependency's module root package to the diagram
-              targetView = _createFolderView(
+              var targetView = _createFolderView(
                 targetModel,
                 moduleDiagram,
                 canvas,
-                createdDependencyTargetViewCache);
+                createdModuleDiagramItemViewsCache);
 
               // create the containment view from the dependency's module to its layer
               _createContainmentRelationshipView(targetView, dependencyLayerRootView, moduleDiagram, canvas);
@@ -649,7 +652,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               // create the dependency view
               var dependencyView = _createDependencyRelationshipView(dependencyModel, moduleRootView, targetView, moduleDiagram, canvas);
               createdDependencyViewCache[targetID] = dependencyView;
-            };
+            }
           });
         });
 
@@ -657,40 +660,125 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
       moduleDiagram.layout(LayoutOptions.ModuleDiagram); // TODO: move this to separate option
 
 
-      // // MODULE TEMPLATES DIAGRAM (showing the templates of the module and their relationship to all base templates)
+      // MODULE TEMPLATES DIAGRAM (showing the templates of the module and their relationship to all base templates)
 
-      // // create a cache to hold created views for the module diagram
-      // var createdModuleTemplatesDiagramItemViewsCache = {};
+      // create a cache to hold created views for the module diagram
+      var createdModuleTemplatesDiagramItemViewsCache = {};
 
-      // // create the class diagram for the module
-      // var moduleTemplatesDiagram = new type.UMLClassDiagram();
-      // moduleTemplatesDiagram._type = "UMLClassDiagram";
-      // moduleTemplatesDiagram._parent =  helixModule.RootModel;
-      // moduleTemplatesDiagram.name = `${helixModule.Name} Module Diagram`; 
-      // helixModule.RootModel.ownedElements.push(moduleTemplatesDiagram);
+      // create the class diagram for the module
+      var moduleTemplatesDiagram = new type.UMLClassDiagram();
+      moduleTemplatesDiagram._type = "UMLClassDiagram";
+      moduleTemplatesDiagram._parent =  helixModule.RootModel;
+      moduleTemplatesDiagram.name = `${helixModule.RootJsonItem.Name} Module Templates Diagram`; 
+      helixModule.RootModel.ownedElements.push(moduleTemplatesDiagram);
 
-      // // add the view for the layer root package to the diagram
-      // var layerRootView = _createFolderView(
-      //   layer.RootModel,
-      //   moduleTemplatesDiagram,
-      //   canvas,
-      //   createdModuleTemplatesDiagramItemViewsCache);
+      // add the view for the layer root package to the diagram
+      var layerRootView = _createFolderView(
+        layer.RootModel,
+        moduleTemplatesDiagram,
+        canvas,
+        createdModuleTemplatesDiagramItemViewsCache);
 
-      // // add the view for the module root package to the diagram
-      // var moduleRootView = _createFolderView(
-      //   helixModule.RootModel,
-      //   moduleTemplatesDiagram,
-      //   canvas,
-      //   createdModuleTemplatesDiagramItemViewsCache);
+      // add the view for the module root package to the diagram
+      var moduleRootView = _createFolderView(
+        helixModule.RootModel,
+        moduleTemplatesDiagram,
+        canvas,
+        createdModuleTemplatesDiagramItemViewsCache);
 
-      // _createContainmentRelationshipView(moduleRootView, layerRootView, moduleDiagram, canvas);
+      // add the view for the parent-child relationship between the module root package and the layer root package
+      _createContainmentRelationshipView(moduleRootView, layerRootView, moduleTemplatesDiagram, canvas);
 
+      // loop through the module's templates and add each with its dependencies to the diagram
+      helixModule.JsonTemplates.forEach(function(jsonTemplate) {
+        // get the template's model
+        var sourceModel = createdItemViewsCache[jsonTemplate.ReferenceID].model;
 
-      // // TODO: add dependencies
+        // add the source template view to the diagram
+        var sourceTemplateView = _createTemplateView(
+          sourceModel,
+          moduleTemplatesDiagram,
+          canvas,
+          createdModuleTemplatesDiagramItemViewsCache);
+        
+        // add the containment view relating the source template to the module root package
+        _createContainmentRelationshipView(sourceTemplateView, moduleRootView, moduleTemplatesDiagram, canvas);
 
+        // get dependencies from cache for each template in the module (should already be in cache from previous diagram generation logic)
+        var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID];
 
-      // // layout the diagram  
-      // moduleTemplatesDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
+        // loop through dependencies and add each to diagram
+        dependencies.forEach(function(dependency) {
+          // add the view for the target module and it's containing layer to the diagram
+          var mustCreateModuleView = false;
+          var mustCreateTargetView = false;
+          var dependencyLayerRootView = createdModuleTemplatesDiagramItemViewsCache[dependency.TargetHierarchyModel.LayerID];
+          if (!dependencyLayerRootView) {
+            // add the dependency's layer view
+            dependencyLayerRootView = _createFolderView(
+              __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel,
+              moduleTemplatesDiagram,
+              canvas,
+              createdModuleTemplatesDiagramItemViewsCache);
+            
+              mustCreateModuleView =
+                mustCreateTargetView = true;
+          }
+          var dependencyModuleRootView; 
+          if (mustCreateModuleView || !(dependencyModuleRootView = createdModuleTemplatesDiagramItemViewsCache[dependency.TargetHierarchyModel.ModuleID])) {
+            dependencyModuleRootView = _createFolderView(
+              createdItemViewsCache[dependency.TargetHierarchyModel.ModuleID].model,
+              moduleTemplatesDiagram,
+              canvas,
+              createdModuleTemplatesDiagramItemViewsCache);
+
+              mustCreateTargetView = true;
+
+              // create the containment view from the dependency's module to its layer
+              _createContainmentRelationshipView(
+                dependencyModuleRootView, 
+                dependencyLayerRootView, 
+                moduleTemplatesDiagram, 
+                canvas);
+          }
+          var targetView;
+          if (mustCreateTargetView || !(targetView = createdModuleTemplatesDiagramItemViewsCache[dependency.TargetHierarchyModel.JsonTemplate.ReferenceID])) {
+            // add the view for the dependency's module root package to the diagram
+            targetView = _createFolderView(
+              createdItemViewsCache[dependency.TargetHierarchyModel.JsonTemplate.ReferenceID].model,
+              moduleTemplatesDiagram,
+              canvas,
+              createdModuleTemplatesDiagramItemViewsCache);
+
+            // create the containment view from the dependency's target interface to its module root folder
+            _createContainmentRelationshipView(
+              targetView, 
+              dependencyModuleRootView, 
+              moduleTemplatesDiagram, 
+              canvas);
+          }
+
+          // create the dependency model
+          var dependencyModel = _createDependencyRelationshipModel(
+            sourceModel, 
+            targetView.model);
+          
+          // set the documentation for the dependency
+          var documentationEntry = "{`" + dependency.SourceJsonTemplate.Path + "`} -> {`" + dependency.TargetHierarchyModel.JsonTemplate.Path + "`}";  
+          dependencyModel.documentation = documentationEntry;
+
+          // create the dependency view
+          var dependencyView = _createDependencyRelationshipView(
+            dependencyModel, 
+            moduleRootView, 
+            targetView, 
+            moduleTemplatesDiagram, 
+            canvas);
+        });
+      });  
+
+      // layout the diagram  
+      moduleTemplatesDiagram.layout(LayoutOptions.TemplatesDiagram); // TODO: move this to separate option
     });
 
 
