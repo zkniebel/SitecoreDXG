@@ -28,6 +28,7 @@ const glob = require("glob");
 // local
 const configurationLoader = require("./configuration-loader.js");
 const logger = require("./logging.js").logger;
+const completionHandlerManager = require("./completion-handler-manager.js").completionHandlerManager;
 const triggerManager = require("./trigger-manager.js").triggerManager;
 
 /**
@@ -35,6 +36,15 @@ const triggerManager = require("./trigger-manager.js").triggerManager;
  */
 
 const configuration = configurationLoader.getConfiguration();
+
+/**
+ * REGISTER COMPLETION HANDLERS
+ */
+
+glob.sync("./completion_handlers/**/*.js").forEach( function(file) {
+    var completionHandler = require(path.resolve(file));
+    completionHandler.registerCompletionHandler(completionHandlerManager);
+});
 
 /**
  * REGISTER TRIGGERS

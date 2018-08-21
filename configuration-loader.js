@@ -51,6 +51,15 @@ function SitecoreDXGConfiguration() {
      * @property The minimum priority level of log messages for them to be written to the log (Default: "info")
      */
     this.LogLevel = "info";
+    /**
+     * @property The IDs of the completion handler to be called after generation is complete
+     */
+    this.DefaultCompletionHandlers = [];
+
+    /**
+     * @property The settings for the completion handlers
+     */
+    this.CompletionHandlers = { };
     
     /**
      * @property The settings for the triggers
@@ -61,7 +70,7 @@ function SitecoreDXGConfiguration() {
          */
         Express: {
             /**
-             * @property The ID of the Express trigger 
+             * @property The ID of the Express trigger
              */
             TriggerID: "Express",
             /**
