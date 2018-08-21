@@ -26,7 +26,7 @@ const configuration = {
         RabbitMQ: {                                     // The settings for the RabbitMQ trigger
             TriggerID:      "RabbitMQ",                 // The ID of the RabbitMQ trigger 
             ConnectionString:                           // The connection string used to connect to the queue server
-                            "amqp://localhost",
+                            "amqp://localhost?heartbeat=60",
             DocumentationGenerationQueueName:           // The name of the documentation generation queue
                             "generation_queue__documentation",
             MDJGenerationQueueName:                     // The name of the MDJ file generation queue

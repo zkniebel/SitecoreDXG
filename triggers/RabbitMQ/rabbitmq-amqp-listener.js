@@ -75,6 +75,22 @@ var _initializeListenerForQueue = function (connection, queue, callback) {
 var initialize = function () {
   amqp.connect(configuration.Triggers.RabbitMQ.ConnectionString, function (err, conn) {
 
+    if (err) {
+      logger.error("[AMQP]:", err.message);
+      return setTimeout(initialize, 1000);
+    }
+    conn.on("error", function(err) {
+      if (err.message !== "Connection closing") {
+        logger.error("[AMQP]: conn error", err.message);
+      }
+    });
+    conn.on("close", function() {
+      logger.error("[AMQP]: reconnecting");
+      return setTimeout(initialize, 1000);
+    });
+
+    logger.info("[AMQP]: connected");
+
     // create the listener for the documentation generation queue
     _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.DocumentationGenerationQueueName, function (msg, rawData) {
       var parsedData = JSON.parse(rawData);
@@ -91,7 +107,7 @@ var initialize = function () {
     });
 
     // create the listener for the MDJ file generation queue
-    _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, function (msg, msgContentString) {
+    _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, function (msg, rawData) {
       var parsedData = JSON.parse(rawData);
       logger.info("Passing data to documentation generator...");
       generation.generateMetaDataJson(
