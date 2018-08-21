@@ -22,7 +22,7 @@
 const winston = require("winston");
 
 // local
-const logger = require("../logging.js").logger;
+const logger = require("./logging.js").logger;
 
 /**
  * TYPES
@@ -48,7 +48,7 @@ function TriggerManager() {
     this.initializeTrigger = function (id) {
         var initializer = this._triggers[id];
         if (typeof initializer !== "function") {
-            logger.error(`Invalid trigger registration for trigger "${id}". SitecoreDXG shutting down...`);
+            logger.error(`Invalid trigger registration for trigger "${id}".`);
             return;
         }
 
