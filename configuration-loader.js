@@ -28,7 +28,7 @@ const leftPad = require("left-pad");
 const mkdirp = require("mkdirp");
 
 // local
-const settings = require("./settings.js");
+const settings = require("./settings.js").configuration;
 const fileUtils = require("./utils/file-utils.js");
 
 /**
@@ -80,7 +80,7 @@ function SitecoreDXGConfiguration() {
             /**
              * @property The connection string used to connect to the queue server
              */
-            ConnectionString: "amqp://localhost",
+            ConnectionString: "amqp://localhost?heartbeat=60",
             /**
              * @property The name of the documentation generation queue
              */
@@ -161,7 +161,7 @@ function getConfiguration() {
         return _configuration;
     }
 
-    _configuration = extend(new SitecoreDXGConfiguration(), settings);
+    _configuration = extend(true, new SitecoreDXGConfiguration(), settings);
     _configuration._initialize();
 
     return _configuration;
