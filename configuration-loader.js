@@ -28,7 +28,7 @@ const leftPad = require("left-pad");
 const mkdirp = require("mkdirp");
 
 // local
-const settings = require("./settings.js");
+const settings = require("./settings.js").configuration;
 const fileUtils = require("./utils/file-utils.js");
 
 /**
@@ -51,6 +51,15 @@ function SitecoreDXGConfiguration() {
      * @property The minimum priority level of log messages for them to be written to the log (Default: "info")
      */
     this.LogLevel = "info";
+    /**
+     * @property The IDs of the completion handler to be called after generation is complete
+     */
+    this.DefaultCompletionHandlers = [];
+
+    /**
+     * @property The settings for the completion handlers
+     */
+    this.CompletionHandlers = { };
     
     /**
      * @property The settings for the triggers
@@ -61,7 +70,7 @@ function SitecoreDXGConfiguration() {
          */
         Express: {
             /**
-             * @property The ID of the Express trigger 
+             * @property The ID of the Express trigger
              */
             TriggerID: "Express",
             /**
@@ -80,7 +89,7 @@ function SitecoreDXGConfiguration() {
             /**
              * @property The connection string used to connect to the queue server
              */
-            ConnectionString: "amqp://localhost",
+            ConnectionString: "amqp://localhost?heartbeat=60",
             /**
              * @property The name of the documentation generation queue
              */
@@ -161,7 +170,7 @@ function getConfiguration() {
         return _configuration;
     }
 
-    _configuration = extend(new SitecoreDXGConfiguration(), settings);
+    _configuration = extend(true, new SitecoreDXGConfiguration(), settings);
     _configuration._initialize();
 
     return _configuration;
