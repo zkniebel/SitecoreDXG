@@ -26,6 +26,7 @@ const path = require("path");
 const configurationLoader = require("./configuration-loader.js");
 const logger = require("./logging.js").logger;
 const mdjre = require("./mdj-reverseengineer.js");
+const completionHandlerManager = require("./completion-handler-manager.js").completionHandlerManager;
 
 /**
  * PROPERTIES
@@ -65,6 +66,10 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
     if (successCallback) {
         successCallback(mdjPath, targetFileName, targetFolderPath, targetFilePath);
     }
+
+    // call the completion handlers
+    var completionHandlerIDs = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
+    completionHandlerManager.callCompletionHandlers(completionHandlerIDs, targetFolderPath);
 };
 
 /**
@@ -94,6 +99,10 @@ const generateDocumentation = function(data, successCallback, errorCallback) {
 
                 if (successCallback) {
                     successCallback(targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath);
+
+                    // call the completion handlers
+                    var completionHandlerIDs = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
+                    completionHandlerManager.callCompletionHandlers(completionHandlerIDs, targetFolderPath);
                 }
             },
             function (error) {

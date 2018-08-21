@@ -18,17 +18,18 @@
  * DEPENDENCIES 
  */
 
+// node
+const path = require("path");
+
 // third-party
 const winston = require("winston");
+const glob = require("glob");
 
 // local
 const configurationLoader = require("./configuration-loader.js");
 const logger = require("./logging.js").logger;
-
-// local - triggers
-const triggerManager = require("./triggers/trigger-manager.js").triggerManager;
-const rabbitMQListener= require("./triggers/RabbitMQ/rabbitmq-amqp-listener.js");
-const expressService = require("./triggers/Express/express-service.js");
+const completionHandlerManager = require("./completion-handler-manager.js").completionHandlerManager;
+const triggerManager = require("./trigger-manager.js").triggerManager;
 
 /**
  * CONSTANTS
@@ -37,14 +38,25 @@ const expressService = require("./triggers/Express/express-service.js");
 const configuration = configurationLoader.getConfiguration();
 
 /**
+ * REGISTER COMPLETION HANDLERS
+ */
+
+glob.sync("./completion_handlers/**/*.js").forEach( function(file) {
+    var completionHandler = require(path.resolve(file));
+    completionHandler.registerCompletionHandler(completionHandlerManager);
+});
+
+/**
  * REGISTER TRIGGERS
  */
 
-rabbitMQListener.registerTrigger(triggerManager);
-expressService.registerTrigger(triggerManager);
+glob.sync("./triggers/**/*.js").forEach( function(file) {
+    var trigger = require(path.resolve(file));
+    trigger.registerTrigger(triggerManager);
+});
 
 /**
- * INITIALIZE TRIGGER
+ * INITIALIZE SELECTED TRIGGER
  */
 
 triggerManager.initializeTrigger(configuration.Trigger);

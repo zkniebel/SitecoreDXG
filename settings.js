@@ -15,27 +15,37 @@
  */
 
 /**
- * EXPORTS
+ * SETTINGS
  */
 
-exports = {
+const configuration = {
     OutputDirectoryPath:    "C:\\SitecoreDXG\\Work",	// The root path where output files are stored (Default: "C:\\SitecoreDXG\\Work")
     LogsDirectoryPath:      "C:\\SitecoreDXG\\Logs",	// The path to where log files will be written (Default: "C:\\SitecoreDXG\\Logs")
     LogLevel:               "info", 					// The minimum priority level of log messages for them to be written to the log (Default: "info")
-    Triggers: {
-        RabbitMQ: {
+    DefaultCompletionHandlers:                          // The IDs of the completion handler to be called by default after generation is complete
+                            [ ],
+    CompletionHandlers:     {                           // The settings for the completion handlers
+    },
+    Triggers: {                                         // The settings for the triggers
+        RabbitMQ: {                                     // The settings for the RabbitMQ trigger
             TriggerID:      "RabbitMQ",                 // The ID of the RabbitMQ trigger 
             ConnectionString:                           // The connection string used to connect to the queue server
-                            "amqp://localhost",
+                            "amqp://localhost?heartbeat=60",
             DocumentationGenerationQueueName:           // The name of the documentation generation queue
                             "generation_queue__documentation",
             MDJGenerationQueueName:                     // The name of the MDJ file generation queue
                             "generation_queue__mdj"
         },
-        Express: {
+        Express: {                                      // The settings for the Express trigger
             TriggerID:      "Express",                  // The ID of the Express trigger 
-            Port:           8023,						// The port number that the API should listen on (Default: 8023)
+            Port:           8023						// The port number that the API should listen on (Default: 8023)
         }
     },
     Trigger:                "RabbitMQ"                  // The name of the trigger that is to be used when the server is started
 };
+
+/**
+ * EXPORTS
+ */
+
+exports.configuration = configuration;
