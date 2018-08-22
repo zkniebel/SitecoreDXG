@@ -818,9 +818,11 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
 
           // if the dependency's layer is not on the diagram then add it
           var targetView = createdLayerItemViewsCache[dependency.TargetHierarchyModel.LayerID];
+          var targetModel;
+          var mustCreateDependency = false;
           if (!targetView) {
             // get the target layer's model
-            var targetModel = __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel;
+            targetModel = __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel;
 
             // add the target layer to the diagram
             targetView = _createFolderView(
@@ -829,6 +831,14 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               canvas,
               createdLayerItemViewsCache);
 
+            // layer was drawn for first time so definitely need to create the dependency
+            mustCreateDependency = true;
+          } else {
+            targetModel = targetView.model;
+          }
+
+          // if the dependency has to be created or if it hasn't yet been drawn (should be true for new deps and those that point at the source layer)
+          if (mustCreateDependency || !createdLayerDependencyViewsCache[targetModel._id]) {
             // create the dependency model
             var dependencyModel = _createDependencyRelationshipModel(
               layer.RootModel,
@@ -841,12 +851,15 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               targetView, 
               layerDiagram, 
               canvas); 
+            
+            // add the view to the cache
+            createdLayerDependencyViewsCache[targetModel._id] = dependencyView;
 
             // set the documentation for the dependency            
             dependencyModel.documentation = documentationEntry;
           } else {
             // the dependency has already been drawn so update the documentation entry
-            targetView.model.documentation += "  \n" + documentationEntry;
+            targetModel.documentation += "  \n" + documentationEntry;
           }
         });
       });
