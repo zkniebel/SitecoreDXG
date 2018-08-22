@@ -782,34 +782,41 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
     });
 
 
-  //   // LAYER DIAGRAM
+    // LAYER DIAGRAM
 
-  //   // create a cache to hold created views for the layer diagram
-  //   var createdLayerItemViewsCache = {};
-  
-  //   // create the class diagram for the layer
-  //   var layerDiagram = new type.UMLClassDiagram();
-  //   layerDiagram._type = "UMLClassDiagram";
-  //   layerDiagram._parent =  layer.RootModel;
-  //   layerDiagram.name = "Foundation Layer Diagram"; 
-  //  layer.RootModel.ownedElements.push(layerDiagram);
-  
-  //   // add the view for the layer root package to the diagram
-  //   var layerRootView = _createFolderView(
-  //     layer.RootModel,
-  //     layerDiagram,
-  //     canvas,
-  //     createdLayerItemViewsCache);
-  
-  
-  
-  //   // TODO LAYER DEPS
-  
-  
-  
-  
-  //   // layout the layer diagram
-  //   layerDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
+    // create a cache to hold created views for the layer diagram
+    var createdLayerItemViewsCache = {};
+
+    // create the class diagram for the layer
+    var layerDiagram = new type.UMLClassDiagram();
+    layerDiagram._type = "UMLClassDiagram";
+    layerDiagram._parent = layer.RootModel;
+    layerDiagram.name = "Foundation Layer Diagram";
+    layer.RootModel.ownedElements.push(layerDiagram);
+
+    // add the view for the layer root package to the diagram
+    var layerRootView = _createFolderView(
+      layer.RootModel,
+      layerDiagram,
+      canvas,
+      createdLayerItemViewsCache);
+
+    // TODO: implement the following pseudo logic
+
+    // loop through the layer.Modules and for each
+      // add the module to the diagram
+      // add the parent-child relationship between the module and the layer to the diagram
+      // loop though the module.JsonTemplates and for each
+        // add the template to the diagram
+        // add the parent-child relationship between the template and the module to the diagram
+        // for each of the template's dependencies (retrieved from the cache)
+          // if the dependency's layer is not on the diagram then add it
+          // if the dependency's module is not on the diagram then add it and the parent-child relationship
+          // if the dependency template is not on the diagram then add it and the parent-child relationship
+          // add the template's dependency on the dependency template to the diagram
+
+    // layout the layer diagram
+    layerDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
   };
 
   __createDiagramsForLayer(helixArchitecture.FoundationLayer);
