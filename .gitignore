@@ -63,3 +63,6 @@ typings/
 # testing directories
 .Testing
 bin/.Testing
+
+# VS Code
+.vscode/*
