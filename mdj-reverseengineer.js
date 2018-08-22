@@ -787,6 +787,9 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
     // create a cache to hold created views for the layer diagram
     var createdLayerItemViewsCache = {};
 
+    // create a cache to hold the created dependency views for the layer diagram
+    var createdLayerDependencyViewsCache = {};
+
     // create the class diagram for the layer
     var layerDiagram = new type.UMLClassDiagram();
     layerDiagram._type = "UMLClassDiagram";
@@ -801,19 +804,53 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
       canvas,
       createdLayerItemViewsCache);
 
-    // TODO: implement the following pseudo logic
+    // loop through the layer's modules and add their dependencies to the diagram
+    layer.Modules.forEach(function(helixModule) {
+      // loop though the module's templates and add the dependencies for each to the diagram
+      helixModule.JsonTemplates.forEach(function(jsonTemplate) {
+        // get the dependencies for the template from the cache
+        var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID];
 
-    // loop through the layer.Modules and for each
-      // add the module to the diagram
-      // add the parent-child relationship between the module and the layer to the diagram
-      // loop though the module.JsonTemplates and for each
-        // add the template to the diagram
-        // add the parent-child relationship between the template and the module to the diagram
-        // for each of the template's dependencies (retrieved from the cache)
+        // loop through the template's dependencies and add each (if not already added) to the diagram
+        dependencies.forEach(function (dependency) {
+          // set up the documentation entry
+          var documentationEntry = "{`" + dependency.SourceJsonTemplate.Path + "`} -> {`" + dependency.TargetHierarchyModel.JsonTemplate.Path + "`}";  
+
           // if the dependency's layer is not on the diagram then add it
-          // if the dependency's module is not on the diagram then add it and the parent-child relationship
-          // if the dependency template is not on the diagram then add it and the parent-child relationship
-          // add the template's dependency on the dependency template to the diagram
+          var targetView = createdLayerItemViewsCache[dependency.TargetHierarchyModel.LayerID];
+          if (!dependencyLayerView) {
+            // get the target layer's model
+            var targetModel = __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel;
+
+            // add the target layer to the diagram
+            targetView = _createFolderView(
+              targetModel,
+              layerDiagram,
+              canvas,
+              createdLayerItemViewsCache);
+
+            // create the dependency model
+            var dependencyModel = _createDependencyRelationshipModel(
+              layer.RootModel,
+              targetView.model);              
+
+            // add the dependency view to the diagram
+            var dependencyView = _createDependencyRelationshipView(
+              dependencyModel, 
+              layerRootView, 
+              targetView, 
+              layerDiagram, 
+              canvas); 
+
+            // set the documentation for the dependency            
+            dependencyModel.documentation = documentationEntry;
+          } else {
+            // the dependency has already been drawn so update the documentation entry
+            targetView.model.documentation += "  \n" + documentationEntry;
+          }
+        });
+      });
+    });
 
     // layout the layer diagram
     layerDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
