@@ -838,14 +838,15 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
           }
 
           // if the dependency has to be created or if it hasn't yet been drawn (should be true for new deps and those that point at the source layer)
-          if (mustCreateDependency || !createdLayerDependencyViewsCache[targetModel._id]) {
+          var dependencyView = createdLayerDependencyViewsCache[targetModel._id];
+          if (mustCreateDependency || !dependencyView) {
             // create the dependency model
             var dependencyModel = _createDependencyRelationshipModel(
               layer.RootModel,
               targetView.model);              
 
             // add the dependency view to the diagram
-            var dependencyView = _createDependencyRelationshipView(
+            dependencyView = _createDependencyRelationshipView(
               dependencyModel, 
               layerRootView, 
               targetView, 
@@ -859,7 +860,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
             dependencyModel.documentation = documentationEntry;
           } else {
             // the dependency has already been drawn so update the documentation entry
-            targetModel.documentation += "  \n" + documentationEntry;
+            dependencyView.model.documentation += "  \n" + documentationEntry;
           }
         });
       });
