@@ -53,7 +53,7 @@ function CompletionHandlerManager() {
         completionHandlerIDs.forEach(function(id) {
             var completionHandler = configuratoinHandlerManager._completionHandlers[id];
             if (typeof completionHandler !== "function") {
-                logger.error(`Invalid  registration for completion handler "${id}". Skipping...`);
+                logger.error(`Completion handler "${id}" was not found or has an invalid registration. Skipping...`);
                 return;
             }
     
