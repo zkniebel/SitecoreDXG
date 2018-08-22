@@ -794,7 +794,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
     var layerDiagram = new type.UMLClassDiagram();
     layerDiagram._type = "UMLClassDiagram";
     layerDiagram._parent = layer.RootModel;
-    layerDiagram.name = "Foundation Layer Diagram";
+    layerDiagram.name = `${layer.RootJsonItem.Name} Layer Diagram`;
     layer.RootModel.ownedElements.push(layerDiagram);
 
     // add the view for the layer root package to the diagram
@@ -818,7 +818,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
 
           // if the dependency's layer is not on the diagram then add it
           var targetView = createdLayerItemViewsCache[dependency.TargetHierarchyModel.LayerID];
-          if (!dependencyLayerView) {
+          if (!targetView) {
             // get the target layer's model
             var targetModel = __getLayerByID(dependency.TargetHierarchyModel.LayerID).RootModel;
 
@@ -853,7 +853,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
     });
 
     // layout the layer diagram
-    layerDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
+    layerDiagram.layout(LayoutOptions.TemplatesDiagram); // TODO: move this to separate option
   };
 
   __createDiagramsForLayer(helixArchitecture.FoundationLayer);

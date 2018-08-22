@@ -98,7 +98,8 @@ var initialize = function () {
       generation.generateDocumentation(
         parsedData.Data,
         function (targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath) {
-          logger.info(`MDJ File Saved to: "${targetHtmlDocFolderPath}"`);
+          logger.info(`HTML documentation saved to: "${targetHtmlDocFolderPath}"`);
+          logger.info(`Generation completed successfully!`);
         },
         function (error) {
           logger.error(`Generation failed with error: "${error}"`);
@@ -109,11 +110,12 @@ var initialize = function () {
     // create the listener for the MDJ file generation queue
     _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, function (msg, rawData) {
       var parsedData = JSON.parse(rawData);
-      logger.info("Passing data to documentation generator...");
+      logger.info("Passing data to metadata-json file generator...");
       generation.generateMetaDataJson(
         parsedData.Data,
         function (mdjPath, targetFileName, targetFolderPath, targetFilePath) {
-          logger.info(`MDJ File Saved to: "${targetFilePath}"`);
+          logger.info(`Metadata-JSON file saved to: "${targetFilePath}"`);
+          logger.info(`Generation completed successfully!`);
         },
         function (error) {
           logger.error(`Generation failed with error: "${error}"`);
