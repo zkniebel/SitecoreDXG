@@ -108,14 +108,17 @@ The following diagram shows the full workflow that describes the default Sitecor
 
 ### Using SitecoreDXG's Default RabbitMQ Middleman and Trigger
 
-The RabbitMQ Middleman can be called using the following syntax from the `.\middlemen\Node.js\\` folder:
+The RabbitMQ Middleman can be found in the `.\middlemen\RabbitMQ\\` folder. Feel free to call the middleman directly from that folder or to copy that folder to another path or even another machine. If you do choose to move the file to another path or machine, be sure to run `npm init` to create a `package.json` file for it. 
+
+The RabbitMQ Middleman should be called using the following command-line syntax: 
 
 ```
-node rabbitmq-amqp-middleman ARCHITECURE_GET_URL GENERATION_QUEUE_NAME [COMPLETION_HANDLER_NAMES]
+node rabbitmq-amqp-middleman ARCHITECURE_GET_URL CONNECTION_STRING GENERATION_QUEUE_NAME [COMPLETION_HANDLER_NAMES]
 ```
 
 The middleman's parameters are as follows:
  - **`ARCHITECTURE_GET_URL`:** the URL to get the serialized template architecture from
+ - **`CONNECTION_STRING`:** the RabbitMQ connection string to connect to
  - **`GENERATION_QUEUE_NAME`:** the name of the generation queue to add the serialized response to 
  - **`COMPLETION_HANDLER_NAMES`:** (optional) a comma-separated string list of the names of the completion handlers that the Generation Server should call after generation completes 
 
@@ -125,22 +128,22 @@ The following examples show how you can call the RabbitMQ middleman on a Habitat
 
 *To retrieve the architecture and add the result to the documentation queue for generation...*
 ```
-node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "generation_queue__documentation"
+node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "amqp://localhost" "generation_queue__documentation"
 ```
 
 *To retrieve the architecture and add the result to the metadata-json queue for generation...*
 ```
-node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "generation_queue__mdj"
+node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "amqp://localhost" "generation_queue__mdj"
 ```
 
 *To retrieve the architecture and add the result to the documentation queue for generation and will tell the Generation Service to call a completion handler named "helloWorld" when finished...*
 ```
-node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "generation_queue__documentation" "helloWorld"
+node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "amqp://localhost" "generation_queue__documentation" "helloWorld"
 ```
 
 *To retrieve the architecture and add the result to the documentation queue for generation and will tell the Generation Service to call the "foo" and then the "bar" completion handlers when finished...*
 ```
-node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "generation_queue__documentation" "foo,bar"
+node rabbitmq-amqp-middleman http://local.habitat.com/sitecoreuml/sitecoredxg/GetTemplateArchitecture "amqp://localhost" "generation_queue__documentation" "foo,bar"
 ```
 
 -----
@@ -201,11 +204,19 @@ Once you have installed all of the [*node-canvas*](https://github.com/Automattic
 
 -----
 
-## Step 2: Install RabbitMQ (verified with 3.7.6+)
+## Step 2: Install RabbitMQ 
+
+### Step 2a: Install RabbitMQ (verified with 3.7.6+)
 
 Install RabbitMQ by following the [RabbitMQ installation documentation](https://www.rabbitmq.com/download.html). 
 
 Additionally, make sure that if you install RabbitMQ on a server that is reachable by the public domain that you [configure the necessary TLS/SSL settings](https://www.rabbitmq.com/ssl.html) to secure your message queues. 
+
+### Step 2b: Configure SitecoreDXG to Connect to RabbitMQ
+
+Once you have finished configuring RabbitMQ you should have a working connection string, e.g. `"amqp://localhost"`.  Be sure that you call the middleman with this connection string.
+
+Add a heartbeat parameter to the connection string to help keep the connection alive, e.g. `"amqp://localhost?heartbeat=60"`, and update your SitecoreDXG Generation Server's settings with the updated connection string value. Note that you do not need to call the Middleman with the heartbeat parameter.
 
 -----
 

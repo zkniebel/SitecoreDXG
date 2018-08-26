@@ -36,19 +36,26 @@ var _exitProgram = function(process, exitCode, connection) {
     process.exit(0);
 };
 
-amqp.connect('amqp://localhost', function(err, conn) {
+
+var args = process.argv.slice(2);
+var connectionString = args[0];
+
+if (!connectionString) {
+    console.log("No connectionString was passed. Program terminating without sending.");
+    return;
+}
+
+amqp.connect(connectionString, function(err, conn) {
     // create a channel
     conn.createChannel(function(err, ch) {
-        var args = process.argv.slice(2);
-
-        var jsonGetUrl = args[0];        
+        var jsonGetUrl = args[1];        
         if (!jsonGetUrl) {
             console.log("No jsonGetUrl was passed. Program terminating without sending.");
             _exitProgram(process, 1, conn);
             return;
         }
 
-        var queue = args[1];     
+        var queue = args[2];     
         if (!queue) {
             console.log("No queue was passed. Program terminating without sending.");
             _exitProgram(process, 1, conn);
@@ -66,8 +73,8 @@ amqp.connect('amqp://localhost', function(err, conn) {
                 console.error("An error occurred while retrieving the architecture data. Program terminating...", json);
                 _exitProgram(process, 1, conn);
             }            
-            if (args.length > 2) {
-                var completionHandlers = args[2].split(",");
+            if (args.length > 3) {
+                var completionHandlers = args[3].split(",");
                 json.Data.CompletionHandlers = completionHandlers;
                 data = JSON.stringify(json);
             }
