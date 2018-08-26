@@ -108,7 +108,9 @@ The following diagram shows the full workflow that describes the default Sitecor
 
 ### Using SitecoreDXG's Default RabbitMQ Middleman and Trigger
 
-The RabbitMQ Middleman can be called using the following syntax from the `.\middlemen\Node.js\\` folder:
+The RabbitMQ Middleman can be found in the `.\middlemen\RabbitMQ\\` folder. Feel free to call the middleman directly from that folder or to copy that folder to another path or even another machine. If you do choose to move the file to another path or machine, be sure to run `npm init` to create a `package.json` file for it. 
+
+The RabbitMQ Middleman should be called using the following command-line syntax: 
 
 ```
 node rabbitmq-amqp-middleman ARCHITECURE_GET_URL GENERATION_QUEUE_NAME [COMPLETION_HANDLER_NAMES]
