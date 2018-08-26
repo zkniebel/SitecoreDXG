@@ -1,4 +1,4 @@
-# Sitecore Documentation Experience Generator (DXG)
+# SitecoreDXG: The Documentation Experience Generator
 
 The Sitecore Documentation Experience Generator is a Sitecore template architecture visualization and documentation tool from the SitecoreUML family. Leveraging the open-source APIs associated with StarUML (on which SitecoreUML is also based), SitecoreDXG provides support for generating template data model architecture diagrams and HTML documentation from any existing Sitecore instance (PaaS and non-PaaS are both supported) that has the SitecoreUML Service for Sitecore (1.3.6+) installed. It should be noted that SitecoreDXG is a (currently) closed-source, GUI-less and easily-extensible version of SitecoreUML that was specifically designed for ease of integration into CI/CD pipelines. 
 
@@ -32,7 +32,7 @@ A *role* is a program or sub-routine that satisfies a particular piece of logic 
  
 The following diagram shows the general communication workflow between these roles. Note that this workflow may change slightly depending on how you choose to use SitecoreDXG and implement your Middleman and Trigger.
  
- <img src="https://github.com/zkniebel/SitecoreDXG/blob/master/Documentation/assets/SitecoreDXG_Architecture__Direct_Communication_Workflow__Roles.png?raw=true" alt="SitecoreDXG" />
+![General role communication workflow diagram](/Documentation/assets/SitecoreDXG_Architecture__Direct_Communication_Workflow__Roles.png)
  
 #### Role Combinations
 
@@ -55,7 +55,7 @@ A *component* is a modular program or service that is (primarily) independent of
 
 The following diagram depicts how these components communicate at a high-level:
 
-<img src="https://github.com/zkniebel/SitecoreDXG/blob/master/Documentation/assets/SitecoreDXG_Architecture__Components_Overview.png?raw=true" alt="SitecoreDXG" />
+![Component Communication Diagram](/Documentation/assets/SitecoreDXG_Architecture__Components_Overview.png)
 
 ### SitecoreDXG Generation Service's Sub-Components Overview
 
@@ -65,7 +65,7 @@ By default, SitecoreDXG ships with and enables the **SitecoreDXG RabbitMQ Trigge
 
 The following diagram shows the involvement of a trigger sub-component and the SitecoreUML Service for Sitecore in the high-level communication between the main components of fully-functional SitecoreDXG ecosystem:
 
-<img src="https://github.com/zkniebel/SitecoreDXG/blob/master/Documentation/assets/SitecoreDXG_Architecture__Component_Communication.png?raw=true" alt="SitecoreDXG" />
+![Trigger Sub-Component and SitecoreUML Service for Sitecore Involvement in Component Communication Diagram](/Documentation/assets/SitecoreDXG_Architecture__Component_Communication.png)
 
 SitecoreDXG also ships with an example *completion handler*, helloWorld.js, to help those looking to create handlers for themselves. Because completion handler logic is generally specific to the requirements of the end-user's CD/CD architecture, no handlers are configured to be called by default for SitecoreDXG though a default handler can be set in the configuration.
 
@@ -96,9 +96,9 @@ The included middleman and trigger use RabbitMQ to queue architectures for gener
 1. The middleman retrieves the serialized architecture from the SitecoreUML Service for Sitecore and then adds the response to the desired message queue. By default, the `generation_queue__documentation` and `generation_queue__mdj` are supported for generating HTML documentation and a metadata-json file, respectively, but the names of the queues are customizeable via the SitecoreDXG Generation Service's settings.
 2. The RabbitMQ trigger, which has a listener for each of the supported queues, detects that a new message was added and calls the appropriate generation logic of the SitecoreDXG Generation Service for the queue on the passed in architecture.
 
-The following diagram shows the full workflow that describes the default SitecoreDXG ecosystem:
+The following diagram shows the full workflow that describes the default SitecoreDXG ecosystem using RabbitMQ for indirect communication between the Middleman and Trigger:
 
-<img src="https://github.com/zkniebel/SitecoreDXG/blob/master/Documentation/assets/SitecoreDXG_Architecture__Indirect_Communication_Workflow.png?raw=true" alt="SitecoreDXG" />
+![SitecoreDXG Indirect Communication Workflow](/Documentation/assets/SitecoreDXG_Architecture__Indirect_Communication_Workflow.png)
 
 ### Using SitecoreDXG's Default RabbitMQ Middleman and Trigger
 
