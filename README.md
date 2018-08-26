@@ -201,7 +201,7 @@ Once you have installed all of the [*node-canvas*](https://github.com/Automattic
 
 -----
 
-## Step 2: Install RabbitMQ (3.7.6+)
+## Step 2: Install RabbitMQ (verified with 3.7.6+)
 
 Install RabbitMQ by following the [RabbitMQ installation documentation](https://www.rabbitmq.com/download.html). 
 
