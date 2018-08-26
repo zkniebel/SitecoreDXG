@@ -19,8 +19,8 @@
  */
 
 const configuration = {
-    OutputDirectoryPath:    "C:\\SitecoreDXG\\Work",	// The root path where output files are stored (Default: "C:\\SitecoreDXG\\Work")
-    LogsDirectoryPath:      "C:\\SitecoreDXG\\Logs",	// The path to where log files will be written (Default: "C:\\SitecoreDXG\\Logs")
+    OutputDirectoryPath:    "C:\\SitecoreDXG\\Work",	// The root path where output files are stored - will be created if it doesn't exist (Default: "C:\\SitecoreDXG\\Work")
+    LogsDirectoryPath:      "C:\\SitecoreDXG\\Logs",	// The path to where log files will be written - will be created if it doesn't exist (Default: "C:\\SitecoreDXG\\Logs")
     LogLevel:               "info", 					// The minimum priority level of log messages for them to be written to the log (Default: "info")
     DefaultCompletionHandlers:                          // The IDs of the completion handler to be called by default after generation is complete
                             [ ],
