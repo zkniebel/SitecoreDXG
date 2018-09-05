@@ -19,12 +19,6 @@
  * DEPENDENCIES
  */
 
-// third-party
-const winston = require("winston");
-
-// local
-const logger = require("../../logging.js").logger;
-
 
 /**
  * CONSTANTS
@@ -41,7 +35,7 @@ const COMPLETIONHANDLER_ID = "helloWorld!";
  * Executes the completion handler with the given output directory path 
  * @param {string} outputDirectoryPath the path to the output directory
  */
-var _execute = function (outputDirectoryPath) {
+var _execute = function (outputDirectoryPath, logger) {
   logger.info(`hello World! Output path is: "${outputDirectoryPath}"`);
 };
 

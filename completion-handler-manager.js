@@ -18,9 +18,6 @@
  * DEPENDENCIES
  */
 
-// third-party
-const winston = require("winston");
-
 // local
 const logger = require("./logging.js").logger;
 
@@ -58,7 +55,7 @@ function CompletionHandlerManager() {
             }
     
             logger.info(`Calling completion handler "${id}"...`);
-            completionHandler(outputDirectoryPath);
+            completionHandler(outputDirectoryPath, logger);
         });
     }
 };
