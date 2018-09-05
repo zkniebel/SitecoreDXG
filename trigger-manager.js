@@ -23,6 +23,8 @@ const winston = require("winston");
 
 // local
 const logger = require("./logging.js").logger;
+const generation = require("./generation.js");
+const configurationLoader = require("./configuration-loader.js");
 
 /**
  * TYPES
@@ -53,7 +55,7 @@ function TriggerManager() {
         }
 
         logger.info(`Initializing trigger "${id}"...`);
-        initializer();
+        initializer(configurationLoader, generation, logger);
     }
 };
 

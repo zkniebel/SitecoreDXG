@@ -81,11 +81,7 @@ function SitecoreDXGConfiguration() {
         /**
          * @property The settings for the RabbitMQ trigger
          */
-        RabbitMQ: {  
-            /**
-             * @property The ID of the RabbitMQ trigger 
-             */
-            TriggerID: "RabbitMQ",          
+        RabbitMQ: {         
             /**
              * @property The connection string used to connect to the queue server
              */
