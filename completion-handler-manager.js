@@ -41,21 +41,21 @@ function CompletionHandlerManager() {
     };
 
     /**
-     * Calls the completion handlers with the given IDs, passing them the given output directory path
-     * @param {Array<string>} completionHandlerIDs the IDs of the completion handlers that should be executed
+     * Calls the completion handlers with the IDs in the given objects, passing them the given output directory path, the logger and their custom parameters
+     * @param {Array<string>} completionHandlers the IDs of the completion handlers that should be executed
      * @param {string} outputDirectoryPath the path of the output directory
      */
-    this.callCompletionHandlers = function (completionHandlerIDs, outputDirectoryPath) {
-        var configuratoinHandlerManager = this;
-        completionHandlerIDs.forEach(function(id) {
-            var completionHandler = configuratoinHandlerManager._completionHandlers[id];
+    this.callCompletionHandlers = function (completionHandlers, outputDirectoryPath) {
+        var configurationHandlerManager = this;
+        completionHandlers.forEach(function(completionHandlerData) {
+            var completionHandler = configurationHandlerManager._completionHandlers[completionHandlerData.ID];
             if (typeof completionHandler !== "function") {
-                logger.error(`Completion handler "${id}" was not found or has an invalid registration. Skipping...`);
+                logger.error(`Completion handler "${completionHandlerData.ID}" was not found or has an invalid registration. Skipping...`);
                 return;
             }
     
-            logger.info(`Calling completion handler "${id}"...`);
-            completionHandler(outputDirectoryPath, logger);
+            logger.info(`Calling completion handler "${completionHandlerData.ID}"...`);
+            completionHandler(outputDirectoryPath, logger, completionHandlerData.Params);
         });
     }
 };

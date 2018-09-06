@@ -6,7 +6,7 @@
       <param name="env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ConnectionString" value="" spec="text display='normal' description='The RabbitMQ connection string that you wish to use to connect to RabbitMQ (e.g. amqp://localhost)' label='RabbitMQ Connection String' validationMode='not_empty'" />
       <param name="env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.GenerationQueueName" value="" spec="text display='normal' description='The name of the generation queue that you want to submit the serialized architecture queue; by default, the queue that you choose determines the generation action that should occur; the available default queues are the generation_queue__documentation queue (generate HTML documentation) and the generation_queue__mdj queue (generate MDJ file only).' label='Generation Queue Name' validationMode='not_empty'" />
       <param name="env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ArchitectureGetUrl" value="" spec="text display='normal' description='SitecoreUML Service URL for getting the serialized template architecture of the host Sitecore solution (generally http://&lt;sitecore_url&gt;/sitecoreuml/sitecoredxg/GetTemplateArchitecture)' label='Architecture GET URL' validationMode='not_empty'" />
-      <param name="env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.CompletionHandlerNames" value="" spec="text display='normal' description='(Optional) Comma-delimited list of the names of the completion handlers that should be called after successful generation' label='Completion Handler Names' validationMode='any'" />
+      <param name="env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.CompletionHandlerData" value="" spec="text description='(Optional) JSON-formatted string array of the completion handler data objects with the handler ID and parameters; Should have the following syntax:  |'|[{\&quot;ID\&quot;:\&quot;MyHandler1\&quot;,\&quot;Params\&quot;:|[1,2,\&quot;foo\&quot;,\&quot;bar\&quot;|]},{\&quot;ID\&quot;:\&quot;MyHandler2\&quot;}|]|'' label='Completion Handler Data' validationMode='any' display='normal'" />
       <param name="env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ScriptPath" value="" spec="text display='normal' description='The path to the middleman script file on the TeamCity server (customizable for extensibility purposes)' label='Middleman Script Path' validationMode='not_empty'" />
     </parameters>
     <build-runners>
@@ -26,7 +26,7 @@ Write-Output "Dependencies installed"
 
 Write-Output "Calling SitecoreDXG Middleman..."
 
-node %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ScriptPath% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ConnectionString% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ArchitectureGetUrl% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.GenerationQueueName% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.CompletionHandlerNames%
+node %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ScriptPath% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ConnectionString% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.ArchitectureGetUrl% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.GenerationQueueName% %env.SitecoreDXG.Middlemen.RabbitMQ_AMQP.CompletionHandlerData%
 
 Write-Output "Finished calling SitecoreDXG Middleman..."]]></param>
           <param name="jetbrains_powershell_script_mode" value="CODE" />

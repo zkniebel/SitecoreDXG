@@ -74,8 +74,8 @@ amqp.connect(connectionString, function(err, conn) {
                 _exitProgram(process, 1, conn);
             }            
             if (args.length > 3) {
-                var completionHandlers = args[3].split(",");
-                json.Data.CompletionHandlers = completionHandlers;
+                var completionHandlers = args[3];
+                json.Data.CompletionHandlers = JSON.parse(completionHandlers);
                 data = JSON.stringify(json);
             }
 
