@@ -52,7 +52,7 @@ function SitecoreDXGConfiguration() {
      */
     this.LogLevel = "info";
     /**
-     * @property The IDs of the completion handler to be called after generation is complete
+     * @property The completion handler ID-Parameters objects representing the completion handlers to be called after generation is complete
      */
     this.DefaultCompletionHandlers = [];
 
@@ -81,11 +81,7 @@ function SitecoreDXGConfiguration() {
         /**
          * @property The settings for the RabbitMQ trigger
          */
-        RabbitMQ: {  
-            /**
-             * @property The ID of the RabbitMQ trigger 
-             */
-            TriggerID: "RabbitMQ",          
+        RabbitMQ: {         
             /**
              * @property The connection string used to connect to the queue server
              */

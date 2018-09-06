@@ -68,8 +68,8 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
     }
 
     // call the completion handlers
-    var completionHandlerIDs = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
-    completionHandlerManager.callCompletionHandlers(completionHandlerIDs, targetFolderPath);
+    var completionHandlers = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
+    completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath);
 };
 
 /**
@@ -101,8 +101,8 @@ const generateDocumentation = function(data, successCallback, errorCallback) {
                     successCallback(targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath);
 
                     // call the completion handlers
-                    var completionHandlerIDs = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
-                    completionHandlerManager.callCompletionHandlers(completionHandlerIDs, targetFolderPath);
+                    var completionHandlers = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
+                    completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath);
                 }
             },
             function (error) {
