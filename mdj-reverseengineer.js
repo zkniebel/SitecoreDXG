@@ -488,44 +488,55 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
   helixArchitecture.FoundationLayer = {};
   if (documentationConfiguration.FoundationLayerRoot) {
     helixArchitecture.FoundationLayer.ReferenceID = documentationConfiguration.FoundationLayerRoot.ReferenceID;
+    helixArchitecture.FoundationLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FoundationLayer.ReferenceID];
+    rootView = createdItemViewsCache[helixArchitecture.FoundationLayer.ReferenceID];
+    helixArchitecture.FoundationLayer.RootModel = rootView ? rootView.model : undefined;
+    helixArchitecture.FoundationLayer.Modules = documentationConfiguration.FoundationModuleFolders
+      .map(function(leanJsonItem) {
+        var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+        return __getLayerModule(jsonItem);
+      });
+  } else {
+    helixArchitecture.FoundationLayer.Modules = [];
   }
-  helixArchitecture.FoundationLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FoundationLayer.ReferenceID];
-  rootView = createdItemViewsCache[helixArchitecture.FoundationLayer.ReferenceID];
-  helixArchitecture.FoundationLayer.RootModel = rootView ? rootView.model : undefined;
-  helixArchitecture.FoundationLayer.Modules = documentationConfiguration.FoundationModuleFolders
-    .map(function(leanJsonItem) {
-      var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-      return __getLayerModule(jsonItem);
-    });
 
   // 3) INITIALIZE THE FEATURE LAYER
   helixArchitecture.FeatureLayer = {};
   
   if (documentationConfiguration.FeatureLayerRoot) {
     helixArchitecture.FeatureLayer.ReferenceID = documentationConfiguration.FeatureLayerRoot.ReferenceID;
+    helixArchitecture.FeatureLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FeatureLayer.ReferenceID];
+    rootView = createdItemViewsCache[helixArchitecture.FeatureLayer.ReferenceID];
+    helixArchitecture.FeatureLayer.RootModel = rootView ? rootView.model : undefined;
+    helixArchitecture.FeatureLayer.Modules = documentationConfiguration.FeatureModuleFolders
+      .map(function(leanJsonItem) {
+        var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+        return __getLayerModule(jsonItem);
+      });
+  } else {
+    helixArchitecture.FeatureLayer.Modules = [];
   }
-  helixArchitecture.FeatureLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FeatureLayer.ReferenceID];
-  rootView = createdItemViewsCache[helixArchitecture.FeatureLayer.ReferenceID];
-  helixArchitecture.FeatureLayer.RootModel = rootView ? rootView.model : undefined;
-  helixArchitecture.FeatureLayer.Modules = documentationConfiguration.FeatureModuleFolders
-    .map(function(leanJsonItem) {
-      var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-      return __getLayerModule(jsonItem);
-    });
 
   // 4) INITIALIZE THE PROJECT LAYER
   helixArchitecture.ProjectLayer = {};
   if (documentationConfiguration.ProjectLayerRoot) {
     helixArchitecture.ProjectLayer.ReferenceID = documentationConfiguration.ProjectLayerRoot.ReferenceID;
+    helixArchitecture.ProjectLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.ProjectLayer.ReferenceID];
+    rootView = createdItemViewsCache[helixArchitecture.ProjectLayer.ReferenceID];
+    helixArchitecture.ProjectLayer.RootModel = rootView ? rootView.model : undefined;
+    helixArchitecture.ProjectLayer.Modules = documentationConfiguration.ProjectModuleFolders
+      .map(function(leanJsonItem) {
+        var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+        return __getLayerModule(jsonItem);
+      });
+  } else {
+    helixArchitecture.ProjectLayer.Modules = [];
   }
-  helixArchitecture.ProjectLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.ProjectLayer.ReferenceID];
-  rootView = createdItemViewsCache[helixArchitecture.ProjectLayer.ReferenceID];
-  helixArchitecture.ProjectLayer.RootModel = rootView ? rootView.model : undefined;
-  helixArchitecture.ProjectLayer.Modules = documentationConfiguration.ProjectModuleFolders
-    .map(function(leanJsonItem) {
-      var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-      return __getLayerModule(jsonItem);
-    });
+
+  // if none of the layers have the requisite data then just return
+  if (!(helixArchitecture.FoundationLayer.ReferenceID || helixArchitecture.FeatureLayer.ReferenceID || helixArchitecture.ProjectLayer.ReferenceID)) {
+    return;
+  }
 
   // 5) INITIALIZE THE HIERARCHY INDEX
   var templateHierarchyIndex = {};
@@ -550,6 +561,10 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
   var templateDependenciesCache = {};
 
   var __createDiagramsForLayer = function(layer) {
+    // if the layer root was never set then don't generate diagrams for the layer
+    if (!layer.ReferenceID) {
+      return; 
+    }
 
     // create the module and module templates diagrams
     layer.Modules.forEach(function(helixModule) {
