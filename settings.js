@@ -22,13 +22,12 @@ const configuration = {
     OutputDirectoryPath:    "C:\\SitecoreDXG\\Work",	// The root path where output files are stored - will be created if it doesn't exist (Default: "C:\\SitecoreDXG\\Work")
     LogsDirectoryPath:      "C:\\SitecoreDXG\\Logs",	// The path to where log files will be written - will be created if it doesn't exist (Default: "C:\\SitecoreDXG\\Logs")
     LogLevel:               "info", 					// The minimum priority level of log messages for them to be written to the log (Default: "info")
-    DefaultCompletionHandlers:                          // The IDs of the completion handler to be called by default after generation is complete
-                            [ ],
+    DefaultCompletionHandlers:                          // The completion handler ID-Parameters objects representing the completion handlers to be called after generation is complete
+                            [ ],                        //   NOTE: this should be an array of objects similar to the following [{ ID: "MyCompletionHandler1", Params: [] }, { ID: "MyCompletionHandler2", Params: ["foo", 1, "bar"] }] 
     CompletionHandlers:     {                           // The settings for the completion handlers
     },
     Triggers: {                                         // The settings for the triggers
         RabbitMQ: {                                     // The settings for the RabbitMQ trigger
-            TriggerID:      "RabbitMQ",                 // The ID of the RabbitMQ trigger 
             ConnectionString:                           // The connection string used to connect to the queue server
                             "amqp://localhost?heartbeat=60",
             DocumentationGenerationQueueName:           // The name of the documentation generation queue

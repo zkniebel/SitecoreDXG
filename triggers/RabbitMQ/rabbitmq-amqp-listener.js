@@ -21,20 +21,12 @@
 
 // third-party
 var amqp = require('amqplib/callback_api');
-const winston = require("winston");
-
-// local
-const configurationLoader = require("../../configuration-loader.js");
-const logger = require("../../logging.js").logger;
-const generation = require("../../generation.js");
-
 
 /**
  * CONSTANTS
  */
 
-const configuration = configurationLoader.getConfiguration();
-const TRIGGER_ID = configuration.Triggers.RabbitMQ.TriggerID;
+const TRIGGER_ID = "RabbitMQ";
 
 
 /**
@@ -47,7 +39,7 @@ const TRIGGER_ID = configuration.Triggers.RabbitMQ.TriggerID;
  * @param {string} queue the name of the queue to listen to
  * @param {function} callback the callback function to be called when a message is read from the queue (message is the first argment and the message's content as a string is the second argument)
  */
-var _initializeListenerForQueue = function (connection, queue, callback) {
+var _initializeListenerForQueue = function (connection, queue, logger, callback) {
   // create the listener for the 
   connection.createChannel(function (err, ch) {
     ch.assertQueue(queue, { durable: false }, function (err) {
@@ -72,12 +64,14 @@ var _initializeListenerForQueue = function (connection, queue, callback) {
 /**
  * Initializes the trigger
  */
-var initialize = function () {
+var initialize = function (configurationLoader, generation, logger) {
+  const configuration = configurationLoader.getConfiguration();
+  
   amqp.connect(configuration.Triggers.RabbitMQ.ConnectionString, function (err, conn) {
 
     if (err) {
       logger.error("[AMQP]:", err.message);
-      return setTimeout(initialize, 1000);
+      return setTimeout(function() { initialize(configurationLoader, generation, logger); }, 1000);
     }
     conn.on("error", function(err) {
       if (err.message !== "Connection closing") {
@@ -86,13 +80,13 @@ var initialize = function () {
     });
     conn.on("close", function() {
       logger.error("[AMQP]: reconnecting");
-      return setTimeout(initialize, 1000);
+      return setTimeout(function() { initialize(configurationLoader, generation, logger); }, 1000);
     });
 
     logger.info("[AMQP]: connected");
 
     // create the listener for the documentation generation queue
-    _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.DocumentationGenerationQueueName, function (msg, rawData) {
+    _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.DocumentationGenerationQueueName, logger, function (msg, rawData) {
       var parsedData = JSON.parse(rawData);
       logger.info("Passing data to documentation generator...");
       generation.generateDocumentation(
@@ -108,7 +102,7 @@ var initialize = function () {
     });
 
     // create the listener for the MDJ file generation queue
-    _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, function (msg, rawData) {
+    _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, logger, function (msg, rawData) {
       var parsedData = JSON.parse(rawData);
       logger.info("Passing data to metadata-json file generator...");
       generation.generateMetaDataJson(

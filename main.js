@@ -41,7 +41,7 @@ const configuration = configurationLoader.getConfiguration();
  * REGISTER COMPLETION HANDLERS
  */
 
-glob.sync("./completion_handlers/**/*.js").forEach( function(file) {
+glob.sync("./completion_handlers/**{,!(node_modules)/**}*.js").forEach(function(file) {
     var completionHandler = require(path.resolve(file));
     completionHandler.registerCompletionHandler(completionHandlerManager);
 });
@@ -50,7 +50,7 @@ glob.sync("./completion_handlers/**/*.js").forEach( function(file) {
  * REGISTER TRIGGERS
  */
 
-glob.sync("./triggers/**/*.js").forEach( function(file) {
+glob.sync("./triggers/**{,!(node_modules)/**}*.js").forEach(function(file) {
     var trigger = require(path.resolve(file));
     trigger.registerTrigger(triggerManager);
 });
