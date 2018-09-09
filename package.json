@@ -4,8 +4,9 @@
   "description": "Sitecore Document Experience Generator - Generation Service",
   "main": "main.js",
   "scripts": {
+    "preinstall": "node preinstall",
     "install-windows-service": "winser -i -a -c -n \"SitecoreDXG Generation Service\"",
-    "uninstall-windows-service": "winser -r -x -s -c"
+    "uninstall-windows-service": "winser -r -x -s -c -n \"SitecoreDXG Generation Service\""
   },
   "author": "Zachary Kniebel",
   "devDependencies": {
