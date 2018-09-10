@@ -21,11 +21,11 @@
 
 // third-party
 const AWS = require("aws-sdk"); 
-const mime = require("mime-types")
+const mime = require("mime-types");
 
 // node
-const fs = require("fs"); // from node.js
-const path = require("path"); // from node.js
+const fs = require("fs");
+const path = require("path"); 
 
 
 /**
@@ -46,11 +46,11 @@ const COMPLETIONHANDLER_ID = "AWS_S3";
  * @param {Array<*>} params array of custom parameters
  */
 var _execute = function (outputDirectoryPath, logger, params) {
-    logger.info(`Executing AWS S3 Deployment Completion Handler on output path"${outputDirectoryPath}"`);
+    logger.info(`Executing AWS S3 Deployment Completion Handler on output path "${outputDirectoryPath}"`);
 
     var options = params[0];
     if (!options || !(options.AccessKeyId && options.SecretAccessKey && options.S3BucketName && options.S3FolderPath)) {
-        logger.error("Error while executingthe AWS S3 completion handler. A JSON argument must be passed with the AccessKeyId, SecretAccessKey, S3BucketName, and S3FolderPath properties set.");
+        logger.error("Error while executing the AWS S3 Deployment Completion Handler. A JSON argument must be passed with the AccessKeyId, SecretAccessKey, S3BucketName, and S3FolderPath properties set.");
         return;
     }
 

@@ -1,0 +1,15 @@
+{
+  "name": "abs-deploy-handler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "abs-deploy-handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "azure-storage": "^2.10.1",
+    "mime-types": "^2.1.20"
+  }
+}
