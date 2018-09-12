@@ -1,16 +1,15 @@
 {
-  "name": "sitecoredxg-rabbitmq-amqp-middleman",
+  "name": "sitecoredxg-expressjs-trigger",
   "version": "1.0.0",
   "description": "",
-  "main": "rabbitmq-amqp-middleman.js",
+  "main": "express-service.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "amqplib": "^0.5.2",
-    "request": "^2.88.0"
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3"
   }
 }

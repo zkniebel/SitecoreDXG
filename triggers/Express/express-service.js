@@ -21,29 +21,24 @@
 // third-party
 const express = require("express");
 const bodyParser = require("body-parser");
-const winston = require("winston");
-
-// local
-const configurationLoader = require("../../configuration-loader.js");
-const logger = require("../../logging.js").logger;
-const generation = require ("../../generation.js");
 
 /**
  * CONSTANTS
  */
 
-const app = express();
-const router = express.Router();
-
-const configuration = configurationLoader.getConfiguration();
-const port = configuration.Triggers.Express.Port;
-const TRIGGER_ID = configuration.Triggers.Express.TriggerID;
+const TRIGGER_ID = "Express";
 
 /**
  * FUNCTIONS
  */
 
-var initialize = function() {
+var initialize = function(configurationLoader, generation, logger) {
+    const configuration = configurationLoader.getConfiguration();
+    const port = configuration.Triggers.Express.Port;    
+
+    const app = express();
+    const router = express.Router();
+
     // create application/json parser
     var jsonParser = bodyParser.json();
 

@@ -70,10 +70,6 @@ function SitecoreDXGConfiguration() {
          */
         Express: {
             /**
-             * @property The ID of the Express trigger
-             */
-            TriggerID: "Express",
-            /**
              * @property The port number that the API should listen on (Default: 8023)
              */
             Port: 8023

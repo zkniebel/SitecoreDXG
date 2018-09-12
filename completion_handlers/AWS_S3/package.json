@@ -1,5 +1,5 @@
 {
-  "name": "s3-node-depoy",
+  "name": "sitecoredxg-aws-s3-deploy-completion-handler",
   "version": "1.0.0",
   "description": "",
   "main": "s3-deploy-handler.js",
