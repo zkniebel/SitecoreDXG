@@ -1,5 +1,5 @@
 {
-  "name": "abs-deploy-handler",
+  "name": "sitecoredxg-azure-blob-storage-deploy-completion-handler",
   "version": "1.0.0",
   "description": "",
   "main": "abs-deploy-handler.js",
