@@ -22,6 +22,8 @@
 // third-party
 const AWS = require("aws-sdk"); 
 const mime = require("mime-types");
+const async = require("async");
+const glob = require("glob");
 
 // node
 const fs = require("fs");
@@ -33,6 +35,7 @@ const path = require("path");
  */
 
 const COMPLETIONHANDLER_ID = "AWS_S3";
+const ASYNC_CONCURRENCY = 250;
 
 
 /**
@@ -72,55 +75,63 @@ var _execute = function (outputDirectoryPath, logger, params) {
             .replace(/\\/g, "/");
     };
 
-    var recursivelyDeployDirectoryToS3 = function (directoryPath, targetFolderPath) {
-        // get files in directory and deploy them
-        fs.readdir(directoryPath, (err, files) => {
-            if (!files || files.length === 0) {
-                logger.warn(`Provided folder "${directoryPath}" not found or empty.`);
-                return;
-            }
+    var deployDirectoryToS3 = function (directoryPath) {
+        var hasErrors = false;
 
-            // loop through the files in the directory and deploy each
-            for (const fileName of files) {
-
-                // get the full path of the file
-                const filePath = path.join(directoryPath, fileName);
-
-                // recurse if it's a directory
-                if (fs.lstatSync(filePath).isDirectory()) {
-                    const targetS3FolderPath = joinS3Path(targetFolderPath, fileName);
-                    recursivelyDeployDirectoryToS3(filePath, targetS3FolderPath);
-                    continue;
+        var fileDeploymentQueue = async.queue(function(task, callback) {            
+            // read file into buffer and upload to s3
+            fs.readFile(task.LocalPath, (error, fileContent) => {
+                if (error) {
+                    hasErrors = true;
+                    callback(error);
+                    return;
                 }
-
-                // read file into buffer and upload to s3
-                fs.readFile(filePath, (error, fileContent) => {
-                    if (error) {
-                        logger.error(error);
-                        return;
+    
+                var mimetype = mime.lookup(task.LocalPath);
+    
+                //upload file to S3
+                s3.upload({
+                    Bucket: s3BucketName,
+                    Key: task.TargetPath,
+                    Body: fileContent,
+                    ContentType: mimetype ? mimetype : undefined
+                }, (err) => {
+                    if (err) {
+                        hasErrors = true;
                     }
+                    callback(err);
+                });    
+            });
+        }, ASYNC_CONCURRENCY);
 
-                    // create the target path of the file in the s3 bucket
-                    const targetFilePath = joinS3Path(targetFolderPath, fileName);
+        fileDeploymentQueue.drain = function() {
+            if (hasErrors) {
+                logger.error("File deployment to AWS S3 completed with errors");
+            } else {
+                logger.info("File deployment to AWS S3 completed successfully!");
+            }
+        };
 
-                    var mimetype = mime.lookup(filePath);
+        // get files in directory and deploy them
+        var sourceGlob = directoryPath.replace(/\\/g, "/");
+        sourceGlob += sourceGlob.endsWith("/")
+            ? "**/*"
+            : "/**/*";
 
-                    //upload file to S3
-                    s3.upload({
-                        Bucket: s3BucketName,
-                        Key: targetFilePath,
-                        Body: fileContent,
-                        ContentType: mimetype ? mimetype : undefined
-                    }, (err) => {
-                        if (err) {
-                            logger.error(err);
-                            return;
-                        } else {
-                            logger.info(`Successfully uploaded "${fileName}" to "${targetFilePath}".`);
-                        }
-                    });
+        var filesToDeploy = glob.sync(sourceGlob, { nodir: true }).map(function(filePath) {    
+            // create the target path of the file in the s3 bucket
+            const relativeFilePath = path.relative(directoryPath, filePath);
+            const targetFilePath = joinS3Path(s3FolderPath, relativeFilePath);
 
-                });
+            return { LocalPath: filePath, TargetPath: targetFilePath };
+        });
+
+        fileDeploymentQueue.push(filesToDeploy, function(error) {
+            if (error) {
+                logger.error(`An error occurred while uploading file "${this.data.LocalPath}" to "${this.data.TargetPath}"`);
+                logger.error(error);
+            } else {
+                logger.info(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
             }
         });
     };
@@ -156,12 +167,12 @@ var _execute = function (outputDirectoryPath, logger, params) {
                         cleanDeployFiles();
                     } else {
                         // start the initial recursive deployment for the folder path
-                        recursivelyDeployDirectoryToS3(outputDirectoryPath, s3FolderPath);
+                        deployDirectoryToS3(outputDirectoryPath);
                     }
                 });
             } else {
                 // start the initial recursive deployment for the folder path
-                recursivelyDeployDirectoryToS3(outputDirectoryPath, s3FolderPath);
+                deployDirectoryToS3(outputDirectoryPath);
             }
         });
     };

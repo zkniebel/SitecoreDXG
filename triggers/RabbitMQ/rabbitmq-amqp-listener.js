@@ -40,7 +40,7 @@ const TRIGGER_ID = "RabbitMQ";
  * @param {function} callback the callback function to be called when a message is read from the queue (message is the first argment and the message's content as a string is the second argument)
  */
 var _initializeListenerForQueue = function (connection, queue, logger, callback) {
-  // create the listener for the 
+  // create the listener for the queue
   connection.createChannel(function (err, ch) {
     ch.assertQueue(queue, { durable: false }, function (err) {
       if (err) {
@@ -54,7 +54,12 @@ var _initializeListenerForQueue = function (connection, queue, logger, callback)
       logger.info(" [x] Received message consisting of %s bytes", msgContentString.length);
 
       if (typeof callback !== "undefined") {
-        callback(msg, msgContentString);
+        try {
+          callback(msg, msgContentString);
+        } catch (error) {
+          logger.error(`Error occurred while executing callback for listener on "${queue}" queue:`);
+          logger.error(error);
+        }
       }
 
     }, { noAck: true });
