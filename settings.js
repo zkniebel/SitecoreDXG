@@ -36,7 +36,6 @@ const configuration = {
                             "generation_queue__mdj"
         },
         Express: {                                      // The settings for the Express trigger
-            TriggerID:      "Express",                  // The ID of the Express trigger 
             Port:           8023						// The port number that the API should listen on (Default: 8023)
         }
     },

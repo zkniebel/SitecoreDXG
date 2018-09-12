@@ -1,16 +1,14 @@
 {
-  "name": "sitecoredxg-rabbitmq-amqp-middleman",
+  "name": "sitecoredxg-rabbitmq-amqp-trigger",
   "version": "1.0.0",
   "description": "",
-  "main": "rabbitmq-amqp-middleman.js",
+  "main": "rabbitmq-amqp-listener.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "amqplib": "^0.5.2",
-    "request": "^2.88.0"
+    "amqplib": "^0.5.2"
   }
 }
