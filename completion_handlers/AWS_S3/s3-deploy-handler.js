@@ -35,7 +35,7 @@ const path = require("path");
  */
 
 const COMPLETIONHANDLER_ID = "AWS_S3";
-const async_concurrency = 250;
+const ASYNC_CONCURRENCY = 250;
 
 
 /**
@@ -102,13 +102,13 @@ var _execute = function (outputDirectoryPath, logger, params) {
                     callback(err);
                 });    
             });
-        }, async_concurrency);
+        }, ASYNC_CONCURRENCY);
 
         fileDeploymentQueue.drain = function() {
             if (hasErrors) {
-                logger.error("File deployment completed with errors");
+                logger.error("File deployment to AWS S3 completed with errors");
             } else {
-                logger.info("File deployment completed successfully!");
+                logger.info("File deployment to AWS S3 completed successfully!");
             }
         };
 

@@ -90,6 +90,7 @@ const generateDocumentation = function(data, successCallback, errorCallback) {
 
     try {
         mdjre.reverseEngineerMetaDataJsonFile(data, targetMdjFilePath);
+        logger.info("Generating HTML Documentation...");
         mdjre.generateHtmlDocumentationArchive(
             targetMdjFilePath,
             targetHtmlDocFolderPath,

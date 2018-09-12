@@ -22,6 +22,8 @@
 // third-party
 const azure = require("azure-storage");
 const mime = require("mime-types");
+const async = require("async");
+const glob = require("glob");
 
 // node
 const fs = require("fs");
@@ -33,6 +35,7 @@ const path = require("path");
  */
 
 const COMPLETIONHANDLER_ID = "Azure_ABS";
+const ASYNC_CONCURRENCY = 250;
 
 
 /**
@@ -71,66 +74,71 @@ var _execute = function (outputDirectoryPath, logger, params) {
             .replace(/\\/g, "/");
     };
 
-    var _recursivelyDeployDirectoryToABS = function (directoryPath, targetFolderPath) {
-        var __uploadFile = function(fileName) {
-            return new Promise(function(resolve, reject) {
-                // get the full path of the file
-                const filePath = path.join(directoryPath, fileName);
+    var _deployDirectoryToABS = function (directoryPath) {
+        var hasErrors = false;
 
-                // recurse if it's a directory
-                if (fs.lstatSync(filePath).isDirectory()) {
-                    const targetABSFolderPath = _joinABSPath(targetFolderPath, fileName);
-                    Promise.resolve(_recursivelyDeployDirectoryToABS(filePath, targetABSFolderPath))
-                        .then(function(result) {
-                            resolve(logger.info(`Deployment to "${targetABSFolderPath}" completed successfully`));
-                        })
-                        .catch(function(error) {
-                            reject(logger.error(`Deployment to "${targetABSFolderPath}" resulted in an error`, error));  
-                        });
-                } else {
-                    // create the target path of the file in the ABS share
-                    const targetFilePath = _joinABSPath(targetFolderPath, fileName);
-
-                    var mimetype = mime.lookup(filePath);
-
-                    // upload file to ABS
-                    blobService.createBlockBlobFromLocalFile(
-                        azureStorageContainer,
-                        targetFilePath,
-                        filePath,
-                        {
-                            contentSettings: {
-                                contentType: mimetype ? mimetype : undefined
-                            }
-                        },
-                        function (error, result, response) {
-                            if (error) {
-                                reject(logger.error(error));
-                            } else {
-                                resolve(logger.info(`Successfully uploaded "${fileName}" to "${targetFilePath}".`));
-                            }
-                        }
-                    );
-                };
-            });
-        };
-
-        return new Promise(function(resolve, reject) {
-            fs.readdir(directoryPath, (err, files) => {
-                if (!files || files.length === 0) {
-                    resolve(logger.warn(`Provided folder "${directoryPath}" not found or empty.`));
+        var fileDeploymentQueue = async.queue(function(task, callback) {            
+            // read file into buffer and upload to s3
+            fs.readFile(task.LocalPath, (error, fileContent) => {
+                if (error) {
+                    hasErrors = true;
+                    callback(error);
+                    return;
                 }
 
-                Promise.all(files.map(__uploadFile))
-                    .then(function(result) {
-                        resolve(logger.info(`Deployment to "${directoryPath}" completed successfully`));
-                    })
-                    .catch(function(error) {
-                        reject(logger.error(`Deployment to "${directoryPath}" resulted in an error`, error)); 
-                    });
+                var mimetype = mime.lookup(task.LocalPath);
+
+                // upload file to ABS
+                blobService.createBlockBlobFromLocalFile(
+                    azureStorageContainer,
+                    task.TargetPath,
+                    task.LocalPath,
+                    {
+                        contentSettings: {
+                            contentType: mimetype ? mimetype : undefined
+                        }
+                    },
+                    function (err) {
+                        if (err) {
+                            hasErrors = true;
+                        }
+                        callback(err);
+                    }
+                ); 
             });
+        }, ASYNC_CONCURRENCY);
+
+        fileDeploymentQueue.drain = function() {
+            if (hasErrors) {
+                logger.error("File deployment to Azure Blob Storage completed with errors");
+            } else {
+                logger.info("File deployment to Azure Blob Storage completed successfully!");
+            }
+        };
+
+        // get files in directory and deploy them
+        var sourceGlob = directoryPath.replace(/\\/g, "/");
+        sourceGlob += sourceGlob.endsWith("/")
+            ? "**/*"
+            : "/**/*";
+
+        var filesToDeploy = glob.sync(sourceGlob, { nodir: true }).map(function(filePath) {    
+            // create the target path of the file in the s3 bucket
+            const relativeFilePath = path.relative(directoryPath, filePath);
+            const targetFilePath = _joinABSPath(azureStorageTargetDirectory, relativeFilePath);
+
+            return { LocalPath: filePath, TargetPath: targetFilePath };
         });
-    };
+
+        fileDeploymentQueue.push(filesToDeploy, function(error) {
+            if (error) {
+                logger.error(`An error occurred while uploading file "${this.data.LocalPath}" to "${this.data.TargetPath}"`);
+                logger.error(error);
+            } else {
+                logger.info(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
+            }
+        });
+    }
 
     // ensure that the deployment is clean by removing any files that weren't overwritten in the deployment
     var _cleanDeployFiles = function () {
@@ -178,13 +186,7 @@ var _execute = function (outputDirectoryPath, logger, params) {
                             logger.info("Beginning deployment...");
 
                             // start the initial recursive deployment for the folder path
-                            Promise.resolve(_recursivelyDeployDirectoryToABS(outputDirectoryPath, azureStorageTargetDirectory))
-                                .then(function(result) {
-                                    logger.info(`Deployment completed successfully!`);
-                                })
-                                .catch(function(error) {
-                                    logger.error(`Deployment resulted in an error:`, error); 
-                                });
+                            _deployDirectoryToABS(outputDirectoryPath);
                         })
                         .catch(function(error) {
                             logger.error("Deletion error occurred:", error);
