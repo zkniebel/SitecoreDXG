@@ -34,7 +34,7 @@ const cp = require("child_process");
  */
 const npmInstallRecursive = function (dirPath) {
     fs.readdirSync(dirPath).forEach(function (currentPath) {
-        var currentPath = path.join(dirPath, mod);
+        var currentPath = path.join(dirPath, currentPath);
         if (!fs.lstatSync(currentPath).isDirectory()) {
             return;
         }
