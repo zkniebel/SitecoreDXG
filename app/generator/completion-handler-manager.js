@@ -20,6 +20,7 @@
 
 // local
 const logger = require("../common/logging.js").logger;
+const configurationLoader = require("../common/configuration-loader.js");
 
 /**
  * TYPES
@@ -55,7 +56,7 @@ function CompletionHandlerManager() {
             }
     
             logger.info(`Calling completion handler "${completionHandlerData.ID}"...`);
-            completionHandler(outputDirectoryPath, logger, completionHandlerData.Params);
+            completionHandler(outputDirectoryPath, configurationLoader, logger, completionHandlerData.Params);
         });
     }
 };
