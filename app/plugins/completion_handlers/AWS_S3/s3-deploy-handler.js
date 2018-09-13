@@ -139,7 +139,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, logger, param
                 logger.error(`An error occurred while uploading file "${this.data.LocalPath}" to "${this.data.TargetPath}"`);
                 logger.error(error);
             } else {
-                logger.info(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
+                logger.verbose(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
             }
         });
     };

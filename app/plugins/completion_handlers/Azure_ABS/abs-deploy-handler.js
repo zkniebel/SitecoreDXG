@@ -143,7 +143,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, logger, param
                 logger.error(`An error occurred while uploading file "${this.data.LocalPath}" to "${this.data.TargetPath}"`);
                 logger.error(error);
             } else {
-                logger.info(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
+                logger.verbose(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
             }
         });
     }
@@ -159,7 +159,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, logger, param
                         if (error) {
                             reject(logger.error(error));
                         } else {
-                            resolve(logger.info(`Deleted '${fileName}' from Azure Storage`));
+                            resolve(logger.verbose(`Deleted '${fileName}' from Azure Storage`));
                         }
                     }
                 );
