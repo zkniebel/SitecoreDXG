@@ -35,7 +35,6 @@ const path = require("path");
  */
 
 const COMPLETIONHANDLER_ID = "Azure_ABS";
-const ASYNC_CONCURRENCY = 250;
 
 
 /**
@@ -48,8 +47,16 @@ const ASYNC_CONCURRENCY = 250;
  * @param {object} logger the logger
  * @param {Array<*>} params array of custom parameters
  */
-var _execute = function (outputDirectoryPath, logger, params) {
+var _execute = function (outputDirectoryPath, configurationLoader, logger, params) {
     logger.info(`Executing Azure Blob Storage Deployment Completion Handler on output path "${outputDirectoryPath}"`);
+    
+    const configuration = configurationLoader.getConfiguration();
+    var async_concurrency;
+    try {
+        async_concurrency = configuration.CompletionHandlers.AzureBlobStorageDeploy.MaxConcurrency;
+    } catch (e) {
+        async_concurrency = 250;
+    }
 
     var options = params[0];
     if (!options || !(options.AzureStorageAccountConnectionString && options.AzureStorageContainer)) {
@@ -106,7 +113,7 @@ var _execute = function (outputDirectoryPath, logger, params) {
                     }
                 ); 
             });
-        }, ASYNC_CONCURRENCY);
+        }, async_concurrency);
 
         fileDeploymentQueue.drain = function() {
             if (hasErrors) {

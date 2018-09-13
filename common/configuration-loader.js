@@ -59,7 +59,26 @@ function SitecoreDXGConfiguration() {
     /**
      * @property The settings for the completion handlers
      */
-    this.CompletionHandlers = { };
+    this.CompletionHandlers = {
+        /**
+         * @property The settings for the AWS S3 Deploy completion handler
+         */
+        AWSS3Deploy: {
+            /**
+             * @property The maximum number of files to be opened/uploaded at any given time
+             */
+            MaxConcurrency: 250                         
+        },
+        /**
+         * @property The settings for the Azure Blob Storage Deploy completion handler
+         */
+        AzureBlobStorageDeploy: {                       
+            /**
+             * @property The maximum number of files to be opened/uploaded at any given time
+             */
+            MaxConcurrency: 250                        
+        }
+    };
     
     /**
      * @property The settings for the triggers
