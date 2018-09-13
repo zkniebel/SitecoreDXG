@@ -25,6 +25,14 @@ const configuration = {
     DefaultCompletionHandlers:                          // The completion handler ID-Parameters objects representing the completion handlers to be called after generation is complete
                             [ ],                        //   NOTE: this should be an array of objects similar to the following [{ ID: "MyCompletionHandler1", Params: [] }, { ID: "MyCompletionHandler2", Params: ["foo", 1, "bar"] }] 
     CompletionHandlers:     {                           // The settings for the completion handlers
+        AWSS3Deploy: {                                  // The settings for the AWS S3 Deploy completion handler
+            MaxConcurrency: 250                         // The maximum number of files to be opened/uploaded at any given time (Default: 250)
+                                                        //   NOTE: this is limited by the OS, and most either limit to 256 or 10K files open at a given time. If you set the limit too high, you may end up receiving errors due to having too many files open
+        },
+        AzureBlobStorageDeploy: {                       // The settings for the Azure Blob Storage Deploy completion handler
+            MaxConcurrency: 250                         // The maximum number of files to be opened/uploaded at any given time (Default: 250)
+                                                        //   NOTE: this is limited by the OS, and most either limit to 256 or 10K files open at a given time. If you set the limit too high, you may end up receiving errors due to having too many files open
+        }
     },
     Triggers: {                                         // The settings for the triggers
         RabbitMQ: {                                     // The settings for the RabbitMQ trigger

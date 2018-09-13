@@ -35,7 +35,6 @@ const path = require("path");
  */
 
 const COMPLETIONHANDLER_ID = "AWS_S3";
-const ASYNC_CONCURRENCY = 250;
 
 
 /**
@@ -45,11 +44,20 @@ const ASYNC_CONCURRENCY = 250;
 /**
  * Executes the completion handler with the given output directory path 
  * @param {string} outputDirectoryPath the path to the output directory
+ * @param {object} configurationLoader the configuration loader module
  * @param {object} logger the logger
  * @param {Array<*>} params array of custom parameters
  */
-var _execute = function (outputDirectoryPath, logger, params) {
+var _execute = function (outputDirectoryPath, configurationLoader, logger, params) {
     logger.info(`Executing AWS S3 Deployment Completion Handler on output path "${outputDirectoryPath}"`);
+    
+    const configuration = configurationLoader.getConfiguration();
+    var async_concurrency;
+    try {
+        async_concurrency = configuration.CompletionHandlers.AWSS3Deploy.MaxConcurrency;
+    } catch (e) {
+        async_concurrency = 250;
+    }
 
     var options = params[0];
     if (!options || !(options.AccessKeyId && options.SecretAccessKey && options.S3BucketName && options.S3FolderPath)) {
@@ -102,7 +110,7 @@ var _execute = function (outputDirectoryPath, logger, params) {
                     callback(err);
                 });    
             });
-        }, ASYNC_CONCURRENCY);
+        }, async_concurrency);
 
         fileDeploymentQueue.drain = function() {
             if (hasErrors) {
@@ -131,7 +139,7 @@ var _execute = function (outputDirectoryPath, logger, params) {
                 logger.error(`An error occurred while uploading file "${this.data.LocalPath}" to "${this.data.TargetPath}"`);
                 logger.error(error);
             } else {
-                logger.info(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
+                logger.verbose(`Successfully uploaded "${this.data.LocalPath}" to "${this.data.TargetPath}".`);
             }
         });
     };
