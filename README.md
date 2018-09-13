@@ -1,6 +1,6 @@
 <p align="center">
 	<a href="https://github.com/zkniebel/SitecoreDXG/">
-		<img src="https://github.com/zkniebel/SitecoreDXG/blob/master/Documentation/assets/SitecoreDXG-logo-50x50.png?raw=true" alt="SitecoreDXG" />
+		<img src="https://zkniebel.gitbooks.io/sitecoredxg/content/assets/SitecoreDXG-logo-50x50.png" alt="SitecoreDXG" />
 	</a>
 </p>
 

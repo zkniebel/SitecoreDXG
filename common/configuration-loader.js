@@ -28,8 +28,8 @@ const leftPad = require("left-pad");
 const mkdirp = require("mkdirp");
 
 // local
-const settings = require("./settings.js").configuration;
-const fileUtils = require("./utils/file-utils.js");
+const settings = require("../settings.js").configuration;
+const fileUtils = require("./file-utils.js");
 
 /**
  * TYPES

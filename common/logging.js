@@ -19,15 +19,11 @@
  * DEPENDENCIES
  */ 
 
-// node
-const fs = require("fs");
-
 // third-party
 const winston = require("winston");
 const leftPad = require("left-pad");
 
 // local
-const fileUtils = require("./utils/file-utils.js");
 const configurationLoader = require("./configuration-loader.js");
 
 /**

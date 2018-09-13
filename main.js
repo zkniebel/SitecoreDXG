@@ -22,14 +22,12 @@
 const path = require("path");
 
 // third-party
-const winston = require("winston");
 const glob = require("glob");
 
 // local
-const configurationLoader = require("./configuration-loader.js");
-const logger = require("./logging.js").logger;
-const completionHandlerManager = require("./completion-handler-manager.js").completionHandlerManager;
-const triggerManager = require("./trigger-manager.js").triggerManager;
+const configurationLoader = require("./common/configuration-loader.js");
+const completionHandlerManager = require("./generator/completion-handler-manager.js").completionHandlerManager;
+const triggerManager = require("./generator/trigger-manager.js").triggerManager;
 
 /**
  * CONSTANTS

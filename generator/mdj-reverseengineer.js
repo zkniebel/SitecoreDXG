@@ -20,7 +20,6 @@
 
 // node
 const fs = require("fs");
-const path = require("path");
 
 // third-party
 const mdjson = require("metadata-json");
@@ -31,8 +30,8 @@ const _dagre = require("dagre");
 const _graphlib = require("graphlib");
 
 // local
-const fileUtils = require("./utils/file-utils.js");
-const logger = require("./logging.js").logger;
+const fileUtils = require("../common/file-utils.js");
+const logger = require("../common/logging.js").logger;
 
 /*
  * GLOBALS
