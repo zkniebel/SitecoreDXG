@@ -19,7 +19,7 @@
  */
 
 // local
-const logger = require("./logging.js").logger;
+const logger = require("../common/logging.js").logger;
 
 /**
  * TYPES

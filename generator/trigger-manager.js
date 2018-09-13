@@ -18,13 +18,10 @@
  * DEPENDENCIES
  */
 
-// third-party
-const winston = require("winston");
-
 // local
-const logger = require("./logging.js").logger;
+const logger = require("../common/logging.js").logger;
+const configurationLoader = require("../common/configuration-loader.js");
 const generation = require("./generation.js");
-const configurationLoader = require("./configuration-loader.js");
 
 /**
  * TYPES
