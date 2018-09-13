@@ -44,6 +44,7 @@ const COMPLETIONHANDLER_ID = "Azure_ABS";
 /**
  * Executes the completion handler with the given output directory path 
  * @param {string} outputDirectoryPath the path to the output directory
+ * @param {object} configurationLoader the configuration loader module
  * @param {object} logger the logger
  * @param {Array<*>} params array of custom parameters
  */
