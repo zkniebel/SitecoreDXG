@@ -23,8 +23,8 @@
 const path = require("path");
 
 // local
-const configurationLoader = require("./configuration-loader.js");
-const logger = require("./logging.js").logger;
+const configurationLoader = require("../common/configuration-loader.js");
+const logger = require("../common/logging.js").logger;
 const mdjre = require("./mdj-reverseengineer.js");
 const completionHandlerManager = require("./completion-handler-manager.js").completionHandlerManager;
 
