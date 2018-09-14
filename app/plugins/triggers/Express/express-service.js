@@ -99,7 +99,7 @@ var initialize = function(configurationLoader, generation, logger) {
     });
 
     // start listening
-    const server = app.listen(port, () => logger.info(`Sitecore DXG Service Started. Listening on port ${port}`));
+    const server = app.listen(port, () => logger.info(`SitecoreDXG Service Started. Listening on port ${port}`));
 
     // increase the timeout to 30 minutes
     server.timeout = 1800000; 

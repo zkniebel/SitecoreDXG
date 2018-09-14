@@ -34,11 +34,14 @@ const COMPLETIONHANDLER_ID = "helloWorld!";
 /**
  * Executes the completion handler with the given output directory path 
  * @param {string} outputDirectoryPath the path to the output directory
+ * @param {object} configurationLoader the configuration loader module
  * @param {object} logger the logger
  * @param {Array<*>} params array of custom parameters
  */
-var _execute = function (outputDirectoryPath, logger, params) {
+var _execute = function (outputDirectoryPath, configurationLoader, logger, params) {
   logger.info(`hello World! Output path is: "${outputDirectoryPath}"`);
+
+  // your logic here
 };
 
 /**
