@@ -56,6 +56,6 @@ const npmInstallRecursive = function (dirPath) {
  */
 
 // install dependencies for the completion handlers
-npmInstallRecursive(path.join(__dirname, "/completion_handlers"));
+npmInstallRecursive(path.join(__dirname, "/plugins/completion_handlers"));
 // install dependencies for the triggers
-npmInstallRecursive(path.join(__dirname, "/triggers"));
+npmInstallRecursive(path.join(__dirname, "/plugins/triggers"));
