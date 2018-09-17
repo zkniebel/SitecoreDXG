@@ -459,11 +459,9 @@ function _getJsonTemplates(jsonItem) {
  * @param {Canvas} canvas 
  * @param {object} createdItemViewsCache 
  * @param {object} jsonItemIDsCache 
+ * @param {object} layoutOptions 
  */
-function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemViewsCache, jsonItemIDsCache) {  
-  // 1) CREATE THE HELIX ARCHITECTURE OBJECT
-  var helixArchitecture = {};
-
+function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
   var __getLayerModule = function(item) { 
     var jsonItem = jsonItemIDsCache[item.ReferenceID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
@@ -471,73 +469,40 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
       RootModel: createdItemViewsCache[item.ReferenceID].model,
       JsonTemplates: _getJsonTemplates(jsonItem)
     };
-  };  
+  }; 
 
-  var __getLayerByID = function(id) {
-    return helixArchitecture.FoundationLayer.ReferenceID == id 
-      ? helixArchitecture.FoundationLayer
-      : helixArchitecture.FeatureLayer.ReferenceID == id 
-        ? helixArchitecture.FeatureLayer
-        : helixArchitecture.ProjectLayer; // assumes ID is always known
+  var __createLayerInfo = function(layerRoot, layerModuleFolders) {
+    var layer = {};
+    if (layerRoot) {
+      layer.ReferenceID = layerRoot.ReferenceID;
+      layer.RootJsonItem = jsonItemIDsCache[layer.ReferenceID];
+      const rootView = createdItemViewsCache[layer.ReferenceID];
+      layer.RootModel = rootView ? rootView.model : undefined;
+      layer.Modules = layerModuleFolders
+        .map(function(leanJsonItem) {
+          var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
+          return __getLayerModule(jsonItem);
+        });
+    } else {
+      layer.Modules = [];
+    }
+
+    return layer;
+  };
+  
+  // 1) CREATE THE HELIX ARCHITECTURE OBJECT
+  var helixArchitecture = {
+    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders),
+    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders),
+    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders)
   };
 
-  var rootView;
-
-  // 2) INITIALIZE THE FOUNDATION LAYER
-  helixArchitecture.FoundationLayer = {};
-  if (documentationConfiguration.FoundationLayerRoot) {
-    helixArchitecture.FoundationLayer.ReferenceID = documentationConfiguration.FoundationLayerRoot.ReferenceID;
-    helixArchitecture.FoundationLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FoundationLayer.ReferenceID];
-    rootView = createdItemViewsCache[helixArchitecture.FoundationLayer.ReferenceID];
-    helixArchitecture.FoundationLayer.RootModel = rootView ? rootView.model : undefined;
-    helixArchitecture.FoundationLayer.Modules = documentationConfiguration.FoundationModuleFolders
-      .map(function(leanJsonItem) {
-        var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-        return __getLayerModule(jsonItem);
-      });
-  } else {
-    helixArchitecture.FoundationLayer.Modules = [];
-  }
-
-  // 3) INITIALIZE THE FEATURE LAYER
-  helixArchitecture.FeatureLayer = {};
-  
-  if (documentationConfiguration.FeatureLayerRoot) {
-    helixArchitecture.FeatureLayer.ReferenceID = documentationConfiguration.FeatureLayerRoot.ReferenceID;
-    helixArchitecture.FeatureLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.FeatureLayer.ReferenceID];
-    rootView = createdItemViewsCache[helixArchitecture.FeatureLayer.ReferenceID];
-    helixArchitecture.FeatureLayer.RootModel = rootView ? rootView.model : undefined;
-    helixArchitecture.FeatureLayer.Modules = documentationConfiguration.FeatureModuleFolders
-      .map(function(leanJsonItem) {
-        var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-        return __getLayerModule(jsonItem);
-      });
-  } else {
-    helixArchitecture.FeatureLayer.Modules = [];
-  }
-
-  // 4) INITIALIZE THE PROJECT LAYER
-  helixArchitecture.ProjectLayer = {};
-  if (documentationConfiguration.ProjectLayerRoot) {
-    helixArchitecture.ProjectLayer.ReferenceID = documentationConfiguration.ProjectLayerRoot.ReferenceID;
-    helixArchitecture.ProjectLayer.RootJsonItem = jsonItemIDsCache[helixArchitecture.ProjectLayer.ReferenceID];
-    rootView = createdItemViewsCache[helixArchitecture.ProjectLayer.ReferenceID];
-    helixArchitecture.ProjectLayer.RootModel = rootView ? rootView.model : undefined;
-    helixArchitecture.ProjectLayer.Modules = documentationConfiguration.ProjectModuleFolders
-      .map(function(leanJsonItem) {
-        var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-        return __getLayerModule(jsonItem);
-      });
-  } else {
-    helixArchitecture.ProjectLayer.Modules = [];
-  }
-
-  // if none of the layers have the requisite data then just return
+  // 2) STOP IF NONE OF THE LAYERS HAVE THE REQUISITE DATA
   if (!(helixArchitecture.FoundationLayer.ReferenceID || helixArchitecture.FeatureLayer.ReferenceID || helixArchitecture.ProjectLayer.ReferenceID)) {
     return;
   }
 
-  // 5) INITIALIZE THE HIERARCHY INDEX
+  // 3) INITIALIZE THE HIERARCHY INDEX
   var templateHierarchyIndex = {};
   
   var __initializeHierarchyIndexForLayer = function(layer) {
@@ -556,14 +521,22 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
   __initializeHierarchyIndexForLayer(helixArchitecture.FeatureLayer);
   __initializeHierarchyIndexForLayer(helixArchitecture.ProjectLayer);
 
-  // 6) CREATE DIAGRAMS FOR EACH LAYER & INITIALIZE TEMPLATE DEPENDENCIES CACHE
+  // 4) CREATE DIAGRAMS FOR EACH LAYER & INITIALIZE TEMPLATE DEPENDENCIES CACHE
   var templateDependenciesCache = {};
 
   var __createDiagramsForLayer = function(layer) {
     // if the layer root was never set then don't generate diagrams for the layer
     if (!layer.ReferenceID) {
       return; 
-    }
+    }    
+
+    var __getLayerByID = function(id) {
+      return helixArchitecture.FoundationLayer.ReferenceID == id 
+        ? helixArchitecture.FoundationLayer
+        : helixArchitecture.FeatureLayer.ReferenceID == id 
+          ? helixArchitecture.FeatureLayer
+          : helixArchitecture.ProjectLayer; // assumes ID is always known
+    }; 
 
     // create the module and module templates diagrams
     layer.Modules.forEach(function(helixModule) {
@@ -671,7 +644,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
         });
 
       // layout the diagram  
-      moduleDiagram.layout(LayoutOptions.ModuleDiagram); // TODO: move this to separate option
+      moduleDiagram.layout(layoutOptions.ModuleDiagram); // TODO: move this to separate option
 
 
       // MODULE TEMPLATES DIAGRAM (showing the templates of the module and their relationship to all base templates)
@@ -740,6 +713,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
           }
           var dependencyModuleRootView; 
           if (mustCreateModuleView || !(dependencyModuleRootView = createdModuleTemplatesDiagramItemViewsCache[dependency.TargetHierarchyModel.ModuleID])) {
+            // add the view for the dependency's module root package to the diagram
             dependencyModuleRootView = _createFolderView(
               createdItemViewsCache[dependency.TargetHierarchyModel.ModuleID].model,
               moduleTemplatesDiagram,
@@ -757,12 +731,15 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
           }
           var targetView;
           if (mustCreateTargetView || !(targetView = createdModuleTemplatesDiagramItemViewsCache[dependency.TargetHierarchyModel.JsonTemplate.ReferenceID])) {
-            // add the view for the dependency's module root package to the diagram
-            targetView = _createFolderView(
+            // add the view for the dependency's template interface to the diagram
+            targetView = _createTemplateView(
               createdItemViewsCache[dependency.TargetHierarchyModel.JsonTemplate.ReferenceID].model,
               moduleTemplatesDiagram,
               canvas,
               createdModuleTemplatesDiagramItemViewsCache);
+
+            // set the dependency's interface view to have the "none" stereotype (this ensures that the dashed lines and arrows will display properly)
+            targetView.stereotypeDisplay = "none"; 
 
             // create the containment view from the dependency's target interface to its module root folder
             _createContainmentRelationshipView(
@@ -784,7 +761,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
           // create the dependency view
           var dependencyView = _createDependencyRelationshipView(
             dependencyModel, 
-            moduleRootView, 
+            sourceTemplateView, 
             targetView, 
             moduleTemplatesDiagram, 
             canvas);
@@ -792,7 +769,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
       });  
 
       // layout the diagram  
-      moduleTemplatesDiagram.layout(LayoutOptions.TemplatesDiagram); // TODO: move this to separate option
+      moduleTemplatesDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
     });
 
 
@@ -881,7 +858,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
     });
 
     // layout the layer diagram
-    layerDiagram.layout(LayoutOptions.TemplatesDiagram); // TODO: move this to separate option
+    layerDiagram.layout(layoutOptions.TemplatesDiagram); // TODO: move this to separate option
   };
 
   __createDiagramsForLayer(helixArchitecture.FoundationLayer);
@@ -1028,7 +1005,8 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
     architecture.DocumentationConfiguration, 
     canvas, 
     createdItemViewsCache, 
-    jsonItemIDsCache);
+    jsonItemIDsCache,
+    layoutOptions);
   
 
   // serialize the project to JSON
