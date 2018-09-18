@@ -585,6 +585,10 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
                 };
               })
               .filter(function(dependency) { 
+                if (!dependency.TargetHierarchyModel) {
+                  logger.warn(`The dependency item with ID "${dependency.SourceJsonTemplate.ReferenceID}" was documented but does not belong to a specified Helix Module, and so it will be excluded from the dependencies of the "${jsonTemplate.ReferenceID}" item. If the dependency template belongs to a Helix module, please make sure that its module is selected in the Documentation Configuration item in Sitecore.`);
+                  return false;
+                }
                 return dependency && dependency.TargetHierarchyModel.ModuleID != helixModule.RootJsonItem.ReferenceID;
               });
 
