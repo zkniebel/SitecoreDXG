@@ -9,7 +9,8 @@
     "uninstall-windows-service": "winser -r -x -s -c -n \"SitecoreDXG Generation Service\""
   },
   "author": "Zachary Kniebel",
-  "devDependencies": {
+  "devDependencies": {},
+  "dependencies": {
     "archiver": "2.1.1",
     "canvas": "^2.0.0-alpha.13",
     "dagre": "0.4.5",
@@ -22,9 +23,8 @@
     "mkdirp": "0.5.1",
     "winser": "1.0.3",
     "winston": "2.4.1",
-    "winston-daily-rotate-file": "1.7.2"
-  },
-  "dependencies": {
-    "request": "^2.88.0"
+    "winston-daily-rotate-file": "1.7.2",
+    "request": "^2.88.0",
+    "ejs": "^2.5.5"
   }
 }
