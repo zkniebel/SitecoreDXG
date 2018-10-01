@@ -1,7 +1,7 @@
 {
   "name": "sitecoredxg-generation-service",
   "version": "0.0.1",
-  "description": "Sitecore Document Experience Generator - Generation Service",
+  "description": "SitecoreDXG Generation Service - The Generation Service for SitecoreDXG.",
   "main": "main.js",
   "scripts": {
     "preinstall": "node preinstall",
