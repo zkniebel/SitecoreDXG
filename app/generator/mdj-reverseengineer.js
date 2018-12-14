@@ -148,14 +148,19 @@ function _createDependencyRelationshipModel(sourceModel, targetModel) {
  * @param {View} targetView the view of the model that the sourceView's model depends on
  * @param {UMLDiagram} diagram the diagram to display the view on
  * @param {Canvas} canvas the canvas for drawing and sizing the view
+ * @param {string} lineColor (optional) hex code to set the view's line color to
  * @returns {UMLDependencyView}
  */
-function _createDependencyRelationshipView(model, sourceView, targetView, diagram, canvas) {
+function _createDependencyRelationshipView(model, sourceView, targetView, diagram, canvas, lineColor) {
   var view = new type.UMLDependencyView();
   view._type = "UMLDependencyView";
   view.model = model;
   view.tail = sourceView;
   view.head = targetView;
+
+  if (lineColor) {
+    view.lineColor = lineColor;
+  }
 
   diagram.addOwnedView(view);
   view.initialize(canvas);
@@ -524,7 +529,54 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
 
   // 4) CREATE DIAGRAMS FOR EACH LAYER & INITIALIZE TEMPLATE DEPENDENCIES CACHES
   var templateDependenciesCache = {};
-  var templateDependentsCache = {};
+  var templateDependentsCache = {};  
+
+  // validates the dependency described by the given source and target hierarchy models   
+  var __validateDependency = function(sourceLayerID, targetLayerID) {
+    if (targetLayerID == helixArchitecture.ProjectLayer.ReferenceID) {
+        // project -> project
+        if (sourceLayerID == helixArchitecture.ProjectLayer.ReferenceID) {
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Project Layer cannot depend on templates from other modules in the Project Layer" 
+            };
+        }
+        // feature -> project
+        if (sourceLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Feature Layer cannot depend on templates in the Project Layer" 
+            };
+        }
+        // foundation -> project
+        if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Foundation Layer cannot depend on templates in the Project Layer" 
+            };            
+        }
+    } 
+    
+    if (targetLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+        // feature -> feature
+        if (sourceLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Feature Layer cannot depend on templates from other modules in the Feature Layer" 
+            };
+        }
+    
+        // foundation -> feature
+        if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Foundation Layer cannot depend on templates in the Feature Layer" 
+            };            
+        }
+    }
+
+    return { IsValid: true };
+  };
 
   var __initializeDependencyCachesByLayer = function (layer) {
     layer.Modules.forEach(function(helixModule) {
@@ -532,9 +584,13 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
         // initialize the outgoing dependencies
         dependencies = jsonTemplate.BaseTemplates
           .map(function(baseTemplateId) { 
+            var targetHierarchyModel = templateHierarchyIndex[baseTemplateId];
+            var validationResult = __validateDependency(layer.ReferenceID, targetHierarchyModel.LayerID);
             return {
               SourceJsonTemplate: jsonTemplate,
-              TargetHierarchyModel: templateHierarchyIndex[baseTemplateId]
+              TargetHierarchyModel: targetHierarchyModel,
+              IsValid: validationResult.IsValid,
+              ValidationMessage: validationResult.Message
             };
           })
           .filter(function(dependency) { 
@@ -550,11 +606,17 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
         dependencies.forEach(function(dependency) {
           var dependencyJsonTemplate = dependency.TargetHierarchyModel.JsonTemplate;
           var dependencyId = dependencyJsonTemplate.ReferenceID; 
+          
+          var sourceHierarchyModel = templateHierarchyIndex[jsonTemplate.ReferenceID];          
+          var validationResult = __validateDependency(sourceHierarchyModel.LayerID, dependency.TargetHierarchyModel.LayerID);
+
           (templateDependentsCache[dependencyId] || (templateDependentsCache[dependencyId] = [])).push({ 
-            SourceHierarchyModel: templateHierarchyIndex[jsonTemplate.ReferenceID],
-            TargetJsonTemplate: dependencyJsonTemplate
+            SourceHierarchyModel: sourceHierarchyModel,
+            TargetJsonTemplate: dependencyJsonTemplate,
+            IsValid: validationResult.IsValid,
+            ValidationMessage: validationResult.Message
           }); 
-        });     
+        });  
         
         // add an empty array to the cache if dependents havne't already been added in order to ensure that there is alayws an initialized array for each template
         templateDependentsCache[jsonTemplate.ReferenceID] = templateDependentsCache[jsonTemplate.ReferenceID] || [];
@@ -653,6 +715,9 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               } 
               
               // update the documentation for the dependency
+              if (dependency.ValidationMessage) {
+                documentationEntry = dependency.ValidationMessage + "  \n\n";
+              }
               dependencyModel.documentation = documentationEntry;              
 
               // add the view for the target module and it's containing layer to the diagram
@@ -677,7 +742,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               _createContainmentRelationshipView(targetView, dependencyLayerRootView, moduleDiagram, canvas);
 
               // create the dependency view
-              var dependencyView = _createDependencyRelationshipView(dependencyModel, moduleRootView, targetView, moduleDiagram, canvas);
+              var dependencyView = _createDependencyRelationshipView(dependencyModel, moduleRootView, targetView, moduleDiagram, canvas, dependency.IsValid ? undefined : "#ff0000");
               createdDependencyViewCache[targetID] = dependencyView;
             }
           });
@@ -769,7 +834,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               _createContainmentRelationshipView(sourceView, dependentLayerRootView, moduleDependentsDiagram, canvas);
 
               // create the dependent view
-              var dependentView = _createDependencyRelationshipView(dependencyModel, sourceView, moduleRootView, moduleDependentsDiagram, canvas);
+              var dependentView = _createDependencyRelationshipView(dependencyModel, sourceView, moduleRootView, moduleDependentsDiagram, canvas, dependent.IsValid ? undefined : "#ff0000");
               createdDependentViewCache[sourceID] = dependentView;
             }
           });
@@ -894,6 +959,9 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
           
           // update the documentation for the dependency
           var documentationEntry = "{`" + dependency.SourceJsonTemplate.Path + "`} -> {`" + dependency.TargetHierarchyModel.JsonTemplate.Path + "`}";  
+          if (dependency.ValidationMessage) {
+            documentationEntry = dependency.ValidationMessage + "  \n\n";
+          }
           dependencyModel.documentation = documentationEntry;
           
           // create the dependency view
@@ -902,7 +970,8 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             sourceTemplateView, 
             targetView, 
             moduleTemplatesDiagram, 
-            canvas);
+            canvas,
+            dependency.IsValid ? undefined : "#ff0000");
         });
       });  
 
@@ -1033,7 +1102,8 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             sourceView, 
             targetView, 
             moduleTemplatesDependentsDiagram, 
-            canvas);
+            canvas,
+            dependent.IsValid ? undefined : "#ff0000");
         });
       });  
 
@@ -1117,12 +1187,16 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               layerRootView, 
               targetView, 
               layerDiagram, 
-              canvas); 
+              canvas,
+              dependency.IsValid ? undefined : "#ff0000"); 
             
             // add the view to the cache
             createdLayerDependencyViewsCache[targetModel._id] = dependencyView;
             
             // update the documentation for the dependency
+            if (dependency.ValidationMessage) {
+              documentationEntry = dependency.ValidationMessage + "  \n\n";
+            }
             dependencyModel.documentation = documentationEntry;
           } else {
             // the dependency has already been drawn so update the documentation entry
@@ -1207,7 +1281,8 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               sourceView, 
               layerRootView,
               layerDependentsDiagram, 
-              canvas); 
+              canvas, 
+              dependent.IsValid ? undefined : "#ff0000"); 
             
             // add the view to the cache
             createdLayerDependentsViewsCache[dependent.SourceHierarchyModel.LayerID] = dependencyView;
