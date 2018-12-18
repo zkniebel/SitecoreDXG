@@ -61,7 +61,7 @@ function Metaball() {
     /**
      * @property validation error objects
      */
-    this.ValidationErrors = {};
+    this.ValidationErrors = [];
     /**
      * @property generation start time
      */
