@@ -456,12 +456,13 @@ function _getJsonTemplates(jsonItem) {
 /**
  * Generates the helix diagrams for the architecture based on the given documentation configuration
  * @param {object} documentationConfiguration 
+ * @param {object} metaball
  * @param {Canvas} canvas 
  * @param {object} createdItemViewsCache 
  * @param {object} jsonItemIDsCache 
  * @param {object} layoutOptions 
  */
-function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
+function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
   var __getLayerModule = function(item) { 
     var jsonItem = jsonItemIDsCache[item.ReferenceID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
@@ -1250,11 +1251,12 @@ function createCanvas(width, height, contextType) {
  * Reverse engineers the mdj file for the given architecture and returns the local path to the resulting file
  * @param {object} architecture the architecture to generate the mdj file for
  * @param {String} outputFilePath the path to the output file
+ * @param {object} metaball holds the metadata for the generation report
  * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
  * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
  * @returns {String}
  */
-var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptions, canvas) => {
+var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, layoutOptions, canvas) => {
   /* 0) ASSERT AND FORMAT ARGUMENTS */
 
   // architecture is required and must have an initialized Items property
@@ -1265,6 +1267,11 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // outputFilePath is required
   if (!outputFilePath) {
     throw "The output file path is required";
+  }
+
+  // metaball is required
+  if (!metaball) {
+    throw "The metaball is required";
   }
 
   // check if DocumentationConfiguration is present
@@ -1281,9 +1288,20 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // create the projet
   var project = new type.Project();
   project._type = "Project";
-  project.name = architecture.DocumentationConfiguration && architecture.DocumentationConfiguration.DocumentationTitle 
+  project.name = hasDocConfig && architecture.DocumentationConfiguration.DocumentationTitle 
     ? architecture.DocumentationConfiguration.DocumentationTitle
     : "Untitled";
+
+  metaball.DocumentationTitle = project.name;
+  if (hasDocConfig) {
+    metaball.ProjectName = architecture.DocumentationConfiguration.ProjectName;
+    metaball.EnvironmentName = architecture.DocumentationConfiguration.EnvironmentName;
+    metaball.CommitAuthor = architecture.DocumentationConfiguration.CommitAuthor;
+    metaball.CommitHash = architecture.DocumentationConfiguration.CommitHash;
+    metaball.CommitLink = architecture.DocumentationConfiguration.CommitLink;
+    metaball.DeployLink = architecture.DocumentationConfiguration.DeployLink;
+  }
+
 
   // create the root model
   var rootModel = new type.UMLModel();
@@ -1361,6 +1379,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
   _generateHelixDiagrams(
     architecture.DocumentationConfiguration, 
+    metaball,
     canvas, 
     createdItemViewsCache, 
     jsonItemIDsCache,

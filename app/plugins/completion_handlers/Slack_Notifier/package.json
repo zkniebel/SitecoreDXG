@@ -1,0 +1,14 @@
+{
+  "name": "sitecoredxg-slack-notifier",
+  "version": "1.0.0",
+  "description": "SitecoreDXG completion handler that posts generation completion reports to Slack",
+  "main": "slack-notifier.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Zachary Kniebel",
+  "license": "ISC",
+  "dependencies": {
+    "@slack/client": "^4.8.0"
+  }
+}

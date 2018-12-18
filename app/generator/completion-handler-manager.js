@@ -45,8 +45,9 @@ function CompletionHandlerManager() {
      * Calls the completion handlers with the IDs in the given objects, passing them the given output directory path, the logger and their custom parameters
      * @param {Array<string>} completionHandlers the IDs of the completion handlers that should be executed
      * @param {string} outputDirectoryPath the path of the output directory
+     * @param {object} metaball holds the metadata from the generation
      */
-    this.callCompletionHandlers = function (completionHandlers, outputDirectoryPath) {
+    this.callCompletionHandlers = function (completionHandlers, outputDirectoryPath, metaball) {
         var configurationHandlerManager = this;
         completionHandlers.forEach(function(completionHandlerData) {
             var completionHandler = configurationHandlerManager._completionHandlers[completionHandlerData.ID];
@@ -56,7 +57,7 @@ function CompletionHandlerManager() {
             }
     
             logger.info(`Calling completion handler "${completionHandlerData.ID}"...`);
-            completionHandler(outputDirectoryPath, configurationLoader, logger, completionHandlerData.Params);
+            completionHandler(outputDirectoryPath, configurationLoader, metaball, logger, completionHandlerData.Params);
         });
     }
 };
