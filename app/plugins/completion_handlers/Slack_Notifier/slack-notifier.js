@@ -55,21 +55,21 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
     }
     var authorLink = metaball.CommitLink;
 
-    var fields = [];
+    var basicInfoFields = [];
     if (metaball.ProjectName) {
-        fields.push({ "title": "Project", "value": metaball.ProjectName, "short": true });
+        basicInfoFields.push({ "title": "Project", "value": metaball.ProjectName, "short": true });
     }
     if (metaball.EnvironmentName) {
-        fields.push({ "title": "Environment", "value": metaball.EnvironmentName, "short": true });
+        basicInfoFields.push({ "title": "Environment", "value": metaball.EnvironmentName, "short": true });
     }
     if (metaball.DocumentationTitle) {
-        fields.push({ "title": "Documentation Title", "value": metaball.DocumentationTitle, "short": false });
+        basicInfoFields.push({ "title": "Documentation Title", "value": metaball.DocumentationTitle, "short": false });
     }
     if (metaball.StartTime > 0) {
-        fields.push({ "title": "Started", "value": `<!date^${Math.round(metaball.StartTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
+        basicInfoFields.push({ "title": "Started", "value": `<!date^${Math.round(metaball.StartTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
     }
     if (metaball.EndTime > 0) {
-        fields.push({ "title": "Completed", "value": `<!date^${Math.round(metaball.EndTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
+        basicInfoFields.push({ "title": "Completed", "value": `<!date^${Math.round(metaball.EndTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
     }
 
     var actions = metaball.DeployLink
@@ -78,7 +78,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
 
     var validationErrorsData = {};
     if (metaball.ValidationErrorsDetected) {
-        var fields = metaball.ValidationErrors
+        var validationErrorFields = metaball.ValidationErrors
             .filter(function(layer) { return layer.Entries.length; })
             .map(function(layer) {
                 var moduleNames = layer.Entries
@@ -99,7 +99,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
             "mrkdwn_in": [
                 "text"
             ],
-            "fields": fields
+            "fields": validationErrorFields
         };
     }
 
@@ -111,13 +111,14 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
                 "author_link": authorLink,
                 "color": "good",
                 "mrkdwn_in": [],
-                "fields": fields,
+                "fields": basicInfoFields,
                 "actions": actions
             },
             validationErrorsData
         ]
     };
 
+    logger.info(JSON.stringify(notificationData));
     var webhook = new IncomingWebhook(params.Url);
 
     webhook.send(notificationData, function (err, res) {
