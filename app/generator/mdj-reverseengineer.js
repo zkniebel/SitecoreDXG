@@ -148,14 +148,19 @@ function _createDependencyRelationshipModel(sourceModel, targetModel) {
  * @param {View} targetView the view of the model that the sourceView's model depends on
  * @param {UMLDiagram} diagram the diagram to display the view on
  * @param {Canvas} canvas the canvas for drawing and sizing the view
+ * @param {string} lineColor (optional) hex code to set the view's line color to
  * @returns {UMLDependencyView}
  */
-function _createDependencyRelationshipView(model, sourceView, targetView, diagram, canvas) {
+function _createDependencyRelationshipView(model, sourceView, targetView, diagram, canvas, lineColor) {
   var view = new type.UMLDependencyView();
   view._type = "UMLDependencyView";
   view.model = model;
   view.tail = sourceView;
   view.head = targetView;
+
+  if (lineColor) {
+    view.lineColor = lineColor;
+  }
 
   diagram.addOwnedView(view);
   view.initialize(canvas);
@@ -456,33 +461,36 @@ function _getJsonTemplates(jsonItem) {
 /**
  * Generates the helix diagrams for the architecture based on the given documentation configuration
  * @param {object} documentationConfiguration 
+ * @param {object} metaball
  * @param {Canvas} canvas 
  * @param {object} createdItemViewsCache 
  * @param {object} jsonItemIDsCache 
  * @param {object} layoutOptions 
  */
-function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
-  var __getLayerModule = function(item) { 
-    var jsonItem = jsonItemIDsCache[item.ReferenceID]; // note that the input item is a lean version of the JsonFolder object, without children
+function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
+  var __getLayerModuleByID = function(itemID) { 
+    var jsonItem = jsonItemIDsCache[itemID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
       RootJsonItem: jsonItem,
-      RootModel: createdItemViewsCache[item.ReferenceID].model,
+      RootModel: createdItemViewsCache[jsonItem.ReferenceID].model,
       JsonTemplates: _getJsonTemplates(jsonItem)
     };
   }; 
 
-  var __createLayerInfo = function(layerRoot, layerModuleFolders) {
+  var __createLayerInfo = function(layerRoot, layerModuleFolders, layerIndex) {
     var layer = {};
     if (layerRoot) {
       layer.ReferenceID = layerRoot.ReferenceID;
+      layer.LayerIndex = layerIndex;
       layer.RootJsonItem = jsonItemIDsCache[layer.ReferenceID];
       const rootView = createdItemViewsCache[layer.ReferenceID];
       layer.RootModel = rootView ? rootView.model : undefined;
       layer.Modules = layerModuleFolders
         .map(function(leanJsonItem) {
-          var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-          return __getLayerModule(jsonItem);
+          return __getLayerModuleByID(leanJsonItem.ReferenceID);
         });
+
+      metaball.ValidationErrors[layerIndex] = { Name: layer.RootJsonItem.Name, Entries: [] };
     } else {
       layer.Modules = [];
     }
@@ -492,9 +500,9 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
   
   // 1) CREATE THE HELIX ARCHITECTURE OBJECT
   var helixArchitecture = {
-    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders),
-    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders),
-    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders)
+    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders, 0),
+    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders, 1),
+    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders, 2)
   };
 
   // 2) STOP IF NONE OF THE LAYERS HAVE THE REQUISITE DATA
@@ -523,7 +531,74 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
 
   // 4) CREATE DIAGRAMS FOR EACH LAYER & INITIALIZE TEMPLATE DEPENDENCIES CACHES
   var templateDependenciesCache = {};
-  var templateDependentsCache = {};
+  var templateDependentsCache = {};  
+
+  // validates the dependency described by the given source and target hierarchy models   
+  var __validateDependency = function(sourceHierarchyModel, targetHierarchyModel) {
+    var sourceLayerID = sourceHierarchyModel.LayerID;
+    var targetLayerID = targetHierarchyModel.LayerID;
+
+    var ___addValidationErrorToMetaball = function(layerIndex) {
+      var sourceModule = jsonItemIDsCache[sourceHierarchyModel.ModuleID];
+      var entry = {
+        ModuleName: sourceModule.Name,
+        DependentPath: sourceHierarchyModel.JsonTemplate.Path,
+        DependencyPath: targetHierarchyModel.JsonTemplate.Path 
+      };
+
+      metaball.ValidationErrors[layerIndex].Entries.push(entry);
+      metaball.ValidationErrorsDetected = true;
+    };
+
+    if (targetLayerID == helixArchitecture.ProjectLayer.ReferenceID) {
+        // project -> project
+        if (sourceLayerID == helixArchitecture.ProjectLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.ProjectLayer.LayerIndex);
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Project Layer cannot depend on templates from other modules in the Project Layer" 
+            };
+        }
+        // feature -> project
+        if (sourceLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Feature Layer cannot depend on templates in the Project Layer" 
+            };
+        }
+        // foundation -> project
+        if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Foundation Layer cannot depend on templates in the Project Layer" 
+            };            
+        }
+    } 
+    
+    if (targetLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+        // feature -> feature
+        if (sourceLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Feature Layer cannot depend on templates from other modules in the Feature Layer" 
+            };
+        }
+    
+        // foundation -> feature
+        if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
+            return { 
+                IsValid: false, 
+                Message: "Templates in the Foundation Layer cannot depend on templates in the Feature Layer" 
+            };            
+        }
+    }
+
+    return { IsValid: true };
+  };
 
   var __initializeDependencyCachesByLayer = function (layer) {
     layer.Modules.forEach(function(helixModule) {
@@ -542,18 +617,31 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               return false;
             }
             return dependency && dependency.TargetHierarchyModel.ModuleID != helixModule.RootJsonItem.ReferenceID;
+          })
+          .map(function(dependency) {
+            var validationResult = __validateDependency(
+              templateHierarchyIndex[dependency.SourceJsonTemplate.ReferenceID], 
+              dependency.TargetHierarchyModel);
+
+            dependency.IsValid = validationResult.IsValid;
+            dependency.ValidationMessage = validationResult.Message;
+
+            return dependency;
           });
         templateDependenciesCache[jsonTemplate.ReferenceID] = dependencies; 
 
         // initialize the incoming dependencies
         dependencies.forEach(function(dependency) {
           var dependencyJsonTemplate = dependency.TargetHierarchyModel.JsonTemplate;
-          var dependencyId = dependencyJsonTemplate.ReferenceID; 
+          var dependencyId = dependencyJsonTemplate.ReferenceID;          
+
           (templateDependentsCache[dependencyId] || (templateDependentsCache[dependencyId] = [])).push({ 
             SourceHierarchyModel: templateHierarchyIndex[jsonTemplate.ReferenceID],
-            TargetJsonTemplate: dependencyJsonTemplate
+            TargetJsonTemplate: dependencyJsonTemplate,
+            IsValid: dependency.IsValid,
+            ValidationMessage: dependency.ValidationMessage
           }); 
-        });     
+        });  
         
         // add an empty array to the cache if dependents havne't already been added in order to ensure that there is alayws an initialized array for each template
         templateDependentsCache[jsonTemplate.ReferenceID] = templateDependentsCache[jsonTemplate.ReferenceID] || [];
@@ -652,6 +740,9 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               } 
               
               // update the documentation for the dependency
+              if (dependency.ValidationMessage) {
+                documentationEntry = dependency.ValidationMessage + "  \n\n";
+              }
               dependencyModel.documentation = documentationEntry;              
 
               // add the view for the target module and it's containing layer to the diagram
@@ -676,7 +767,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               _createContainmentRelationshipView(targetView, dependencyLayerRootView, moduleDiagram, canvas);
 
               // create the dependency view
-              var dependencyView = _createDependencyRelationshipView(dependencyModel, moduleRootView, targetView, moduleDiagram, canvas);
+              var dependencyView = _createDependencyRelationshipView(dependencyModel, moduleRootView, targetView, moduleDiagram, canvas, dependency.IsValid ? undefined : "#ff0000");
               createdDependencyViewCache[targetID] = dependencyView;
             }
           });
@@ -768,7 +859,7 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               _createContainmentRelationshipView(sourceView, dependentLayerRootView, moduleDependentsDiagram, canvas);
 
               // create the dependent view
-              var dependentView = _createDependencyRelationshipView(dependencyModel, sourceView, moduleRootView, moduleDependentsDiagram, canvas);
+              var dependentView = _createDependencyRelationshipView(dependencyModel, sourceView, moduleRootView, moduleDependentsDiagram, canvas, dependent.IsValid ? undefined : "#ff0000");
               createdDependentViewCache[sourceID] = dependentView;
             }
           });
@@ -893,6 +984,9 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
           
           // update the documentation for the dependency
           var documentationEntry = "{`" + dependency.SourceJsonTemplate.Path + "`} -> {`" + dependency.TargetHierarchyModel.JsonTemplate.Path + "`}";  
+          if (dependency.ValidationMessage) {
+            documentationEntry = dependency.ValidationMessage + "  \n\n";
+          }
           dependencyModel.documentation = documentationEntry;
           
           // create the dependency view
@@ -901,7 +995,8 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
             sourceTemplateView, 
             targetView, 
             moduleTemplatesDiagram, 
-            canvas);
+            canvas,
+            dependency.IsValid ? undefined : "#ff0000");
         });
       });  
 
@@ -1032,7 +1127,8 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
             sourceView, 
             targetView, 
             moduleTemplatesDependentsDiagram, 
-            canvas);
+            canvas,
+            dependent.IsValid ? undefined : "#ff0000");
         });
       });  
 
@@ -1116,12 +1212,16 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               layerRootView, 
               targetView, 
               layerDiagram, 
-              canvas); 
+              canvas,
+              dependency.IsValid ? undefined : "#ff0000"); 
             
             // add the view to the cache
             createdLayerDependencyViewsCache[targetModel._id] = dependencyView;
             
             // update the documentation for the dependency
+            if (dependency.ValidationMessage) {
+              documentationEntry = dependency.ValidationMessage + "  \n\n";
+            }
             dependencyModel.documentation = documentationEntry;
           } else {
             // the dependency has already been drawn so update the documentation entry
@@ -1206,7 +1306,8 @@ function _generateHelixDiagrams(documentationConfiguration, canvas, createdItemV
               sourceView, 
               layerRootView,
               layerDependentsDiagram, 
-              canvas); 
+              canvas, 
+              dependent.IsValid ? undefined : "#ff0000"); 
             
             // add the view to the cache
             createdLayerDependentsViewsCache[dependent.SourceHierarchyModel.LayerID] = dependencyView;
@@ -1250,11 +1351,12 @@ function createCanvas(width, height, contextType) {
  * Reverse engineers the mdj file for the given architecture and returns the local path to the resulting file
  * @param {object} architecture the architecture to generate the mdj file for
  * @param {String} outputFilePath the path to the output file
+ * @param {object} metaball holds the metadata for the generation report
  * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
  * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
  * @returns {String}
  */
-var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptions, canvas) => {
+var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, layoutOptions, canvas) => {
   /* 0) ASSERT AND FORMAT ARGUMENTS */
 
   // architecture is required and must have an initialized Items property
@@ -1265,6 +1367,11 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // outputFilePath is required
   if (!outputFilePath) {
     throw "The output file path is required";
+  }
+
+  // metaball is required
+  if (!metaball) {
+    throw "The metaball is required";
   }
 
   // check if DocumentationConfiguration is present
@@ -1281,9 +1388,20 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   // create the projet
   var project = new type.Project();
   project._type = "Project";
-  project.name = architecture.DocumentationConfiguration && architecture.DocumentationConfiguration.DocumentationTitle 
+  project.name = hasDocConfig && architecture.DocumentationConfiguration.DocumentationTitle 
     ? architecture.DocumentationConfiguration.DocumentationTitle
     : "Untitled";
+
+  metaball.DocumentationTitle = project.name;
+  if (hasDocConfig) {
+    metaball.ProjectName = architecture.DocumentationConfiguration.ProjectName;
+    metaball.EnvironmentName = architecture.DocumentationConfiguration.EnvironmentName;
+    metaball.CommitAuthor = architecture.DocumentationConfiguration.CommitAuthor;
+    metaball.CommitHash = architecture.DocumentationConfiguration.CommitHash;
+    metaball.CommitLink = architecture.DocumentationConfiguration.CommitLink;
+    metaball.DeployLink = architecture.DocumentationConfiguration.DeployLink;
+  }
+
 
   // create the root model
   var rootModel = new type.UMLModel();
@@ -1361,6 +1479,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, layoutOptio
   /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
   _generateHelixDiagrams(
     architecture.DocumentationConfiguration, 
+    metaball,
     canvas, 
     createdItemViewsCache, 
     jsonItemIDsCache,
