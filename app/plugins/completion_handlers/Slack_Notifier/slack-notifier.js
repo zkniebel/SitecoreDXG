@@ -48,11 +48,11 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
         logger.error("Slack notifier requires a params object with a \"Url\" parameter as an argument");
         return;
     }
-    
+
     var authorName = metaball.CommitHash;
     if (metaball.CommitAuthor) {
-        authorName = authorName ? `${authorName} - ${metaball.CommitAuthor}` : metaball.CommitAuthor; 
-    } 
+        authorName = authorName ? `${authorName} - ${metaball.CommitAuthor}` : metaball.CommitAuthor;
+    }
     var authorLink = metaball.CommitLink;
 
     var fields = [];
@@ -66,16 +66,43 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
         fields.push({ "title": "Documentation Title", "value": metaball.DocumentationTitle, "short": false });
     }
     if (metaball.StartTime > 0) {
-        fields.push({ "title": "Started", "value": `<!date^${Math.round(metaball.StartTime/1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
+        fields.push({ "title": "Started", "value": `<!date^${Math.round(metaball.StartTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
     }
     if (metaball.EndTime > 0) {
-        fields.push({ "title": "Completed", "value": `<!date^${Math.round(metaball.EndTime/1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
+        fields.push({ "title": "Completed", "value": `<!date^${Math.round(metaball.EndTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
     }
 
     var actions = metaball.DeployLink
         ? [{ "type": "button", "text": "View the Documentation", "url": metaball.DeployLink }]
-        : [];    
-        
+        : [];
+
+    var validationErrorsData = {};
+    if (metaball.ValidationErrorsDetected) {
+        var fields = metaball.ValidationErrors
+            .filter(function(layer) { return layer.Entries.length; })
+            .map(function(layer) {
+                var moduleNames = layer.Entries
+                    .map(function(entry) { return entry.ModuleName; })
+                    .filter(function(entry, idx, arr) { return arr.indexOf(entry) === idx}) // select distinct
+                    .join("\n");
+
+                return {
+                    "title": layer.Name,
+                    "value": moduleNames,
+                    "short": true
+                }
+            });
+
+        validationErrorsData = {
+            "text": "*Validation Errors Detected*\nInvalid dependencies were found in the following modules by layer:",
+            "color": "danger",
+            "mrkdwn_in": [
+                "text"
+            ],
+            "fields": fields
+        };
+    }
+
     var notificationData = {
         "text": "Generation completion report",
         "attachments": [
@@ -85,14 +112,15 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
                 "color": "good",
                 "mrkdwn_in": [],
                 "fields": fields,
-                "actions": actions	
-            }
+                "actions": actions
+            },
+            validationErrorsData
         ]
     };
 
     var webhook = new IncomingWebhook(params.Url);
-    
-    webhook.send(notificationData, function(err, res) {
+
+    webhook.send(notificationData, function (err, res) {
         if (err) {
             logger.error(`Error occurred while sending Slack notification: ${err}`);
         } else {
@@ -106,7 +134,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
  * @param {CompletionHandlerManager} completionHandlerManager the trigger manager to register the trigger for
  */
 var registerCompletionHandler = function (completionHandlerManager) {
-  completionHandlerManager.registerCompletionHandler(COMPLETIONHANDLER_ID, _execute);
+    completionHandlerManager.registerCompletionHandler(COMPLETIONHANDLER_ID, _execute);
 };
 
 exports.COMPLETIONHANDLER_ID = COMPLETIONHANDLER_ID;

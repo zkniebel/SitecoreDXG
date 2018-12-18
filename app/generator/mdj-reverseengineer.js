@@ -468,27 +468,29 @@ function _getJsonTemplates(jsonItem) {
  * @param {object} layoutOptions 
  */
 function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
-  var __getLayerModule = function(item) { 
-    var jsonItem = jsonItemIDsCache[item.ReferenceID]; // note that the input item is a lean version of the JsonFolder object, without children
+  var __getLayerModuleByID = function(itemID) { 
+    var jsonItem = jsonItemIDsCache[itemID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
       RootJsonItem: jsonItem,
-      RootModel: createdItemViewsCache[item.ReferenceID].model,
+      RootModel: createdItemViewsCache[jsonItem.ReferenceID].model,
       JsonTemplates: _getJsonTemplates(jsonItem)
     };
   }; 
 
-  var __createLayerInfo = function(layerRoot, layerModuleFolders) {
+  var __createLayerInfo = function(layerRoot, layerModuleFolders, layerIndex) {
     var layer = {};
     if (layerRoot) {
       layer.ReferenceID = layerRoot.ReferenceID;
+      layer.LayerIndex = layerIndex;
       layer.RootJsonItem = jsonItemIDsCache[layer.ReferenceID];
       const rootView = createdItemViewsCache[layer.ReferenceID];
       layer.RootModel = rootView ? rootView.model : undefined;
       layer.Modules = layerModuleFolders
         .map(function(leanJsonItem) {
-          var jsonItem = jsonItemIDsCache[leanJsonItem.ReferenceID];
-          return __getLayerModule(jsonItem);
+          return __getLayerModuleByID(leanJsonItem.ReferenceID);
         });
+
+      metaball.ValidationErrors[layerIndex] = { Name: layer.RootJsonItem.Name, Entries: [] };
     } else {
       layer.Modules = [];
     }
@@ -498,9 +500,9 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   
   // 1) CREATE THE HELIX ARCHITECTURE OBJECT
   var helixArchitecture = {
-    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders),
-    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders),
-    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders)
+    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders, 0),
+    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders, 1),
+    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders, 2)
   };
 
   // 2) STOP IF NONE OF THE LAYERS HAVE THE REQUISITE DATA
@@ -532,10 +534,26 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   var templateDependentsCache = {};  
 
   // validates the dependency described by the given source and target hierarchy models   
-  var __validateDependency = function(sourceLayerID, targetLayerID) {
+  var __validateDependency = function(sourceHierarchyModel, targetHierarchyModel) {
+    var sourceLayerID = sourceHierarchyModel.LayerID;
+    var targetLayerID = targetHierarchyModel.LayerID;
+
+    var ___addValidationErrorToMetaball = function(layerIndex) {
+      var sourceModule = jsonItemIDsCache[sourceHierarchyModel.ModuleID];
+      var entry = {
+        ModuleName: sourceModule.Name,
+        DependentPath: sourceHierarchyModel.JsonTemplate.Path,
+        DependencyPath: targetHierarchyModel.JsonTemplate.Path 
+      };
+
+      metaball.ValidationErrors[layerIndex].Entries.push(entry);
+      metaball.ValidationErrorsDetected = true;
+    };
+
     if (targetLayerID == helixArchitecture.ProjectLayer.ReferenceID) {
         // project -> project
         if (sourceLayerID == helixArchitecture.ProjectLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.ProjectLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: "Templates in the Project Layer cannot depend on templates from other modules in the Project Layer" 
@@ -543,6 +561,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
         }
         // feature -> project
         if (sourceLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: "Templates in the Feature Layer cannot depend on templates in the Project Layer" 
@@ -550,6 +569,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
         }
         // foundation -> project
         if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: "Templates in the Foundation Layer cannot depend on templates in the Project Layer" 
@@ -560,6 +580,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     if (targetLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
         // feature -> feature
         if (sourceLayerID == helixArchitecture.FeatureLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: "Templates in the Feature Layer cannot depend on templates from other modules in the Feature Layer" 
@@ -568,6 +589,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     
         // foundation -> feature
         if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
+            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: "Templates in the Foundation Layer cannot depend on templates in the Feature Layer" 
@@ -584,13 +606,9 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
         // initialize the outgoing dependencies
         dependencies = jsonTemplate.BaseTemplates
           .map(function(baseTemplateId) { 
-            var targetHierarchyModel = templateHierarchyIndex[baseTemplateId];
-            var validationResult = __validateDependency(layer.ReferenceID, targetHierarchyModel.LayerID);
             return {
               SourceJsonTemplate: jsonTemplate,
-              TargetHierarchyModel: targetHierarchyModel,
-              IsValid: validationResult.IsValid,
-              ValidationMessage: validationResult.Message
+              TargetHierarchyModel: templateHierarchyIndex[baseTemplateId]
             };
           })
           .filter(function(dependency) { 
@@ -599,22 +617,29 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               return false;
             }
             return dependency && dependency.TargetHierarchyModel.ModuleID != helixModule.RootJsonItem.ReferenceID;
+          })
+          .map(function(dependency) {
+            var validationResult = __validateDependency(
+              templateHierarchyIndex[dependency.SourceJsonTemplate.ReferenceID], 
+              dependency.TargetHierarchyModel);
+
+            dependency.IsValid = validationResult.IsValid;
+            dependency.ValidationMessage = validationResult.Message;
+
+            return dependency;
           });
         templateDependenciesCache[jsonTemplate.ReferenceID] = dependencies; 
 
         // initialize the incoming dependencies
         dependencies.forEach(function(dependency) {
           var dependencyJsonTemplate = dependency.TargetHierarchyModel.JsonTemplate;
-          var dependencyId = dependencyJsonTemplate.ReferenceID; 
-          
-          var sourceHierarchyModel = templateHierarchyIndex[jsonTemplate.ReferenceID];          
-          var validationResult = __validateDependency(sourceHierarchyModel.LayerID, dependency.TargetHierarchyModel.LayerID);
+          var dependencyId = dependencyJsonTemplate.ReferenceID;          
 
           (templateDependentsCache[dependencyId] || (templateDependentsCache[dependencyId] = [])).push({ 
-            SourceHierarchyModel: sourceHierarchyModel,
+            SourceHierarchyModel: templateHierarchyIndex[jsonTemplate.ReferenceID],
             TargetJsonTemplate: dependencyJsonTemplate,
-            IsValid: validationResult.IsValid,
-            ValidationMessage: validationResult.Message
+            IsValid: dependency.IsValid,
+            ValidationMessage: dependency.ValidationMessage
           }); 
         });  
         
