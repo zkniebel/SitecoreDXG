@@ -117,8 +117,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
             validationErrorsData
         ]
     };
-
-    logger.info(JSON.stringify(notificationData));
+    
     var webhook = new IncomingWebhook(params.Url);
 
     webhook.send(notificationData, function (err, res) {
