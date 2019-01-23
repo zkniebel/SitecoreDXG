@@ -21,7 +21,6 @@
 
 // third-party
 const { IncomingWebhook } = require('@slack/client');
-var request = require("request");
 
 
 /**
