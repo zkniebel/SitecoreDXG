@@ -45,10 +45,11 @@ const COMPLETIONHANDLER_ID = "Azure_ABS";
  * Executes the completion handler with the given output directory path 
  * @param {string} outputDirectoryPath the path to the output directory
  * @param {object} configurationLoader the configuration loader module
+ * @param {object} metaball holds the metadata from the generation
  * @param {object} logger the logger
- * @param {Array<*>} params array of custom parameters
+ * @param {Array<*>} params custom parameters object
  */
-var _execute = function (outputDirectoryPath, configurationLoader, logger, params) {
+var _execute = function (outputDirectoryPath, configurationLoader, metaball, logger, params) {
     logger.info(`Executing Azure Blob Storage Deployment Completion Handler on output path "${outputDirectoryPath}"`);
     
     const configuration = configurationLoader.getConfiguration();
@@ -59,15 +60,14 @@ var _execute = function (outputDirectoryPath, configurationLoader, logger, param
         async_concurrency = 250;
     }
 
-    var options = params[0];
-    if (!options || !(options.AzureStorageAccountConnectionString && options.AzureStorageContainer)) {
-        logger.error("Error while executing the Azure Blob Storage Deployment Completion Handler. A JSON argument must be passed with the AzureStorageAccountConnectionString and AzureStorageContainer properties set.");
+    if (!params || !(params.AzureStorageAccountConnectionString && params.AzureStorageContainer)) {
+        logger.error("Error while executing the Azure Blob Storage Deployment Completion Handler. A \"Params\" object must be passed with the AzureStorageAccountConnectionString and AzureStorageContainer properties set.");
         return;
     }
 
-    const azureStorageAccountConnectionString = options.AzureStorageAccountConnectionString;
-    const azureStorageContainer = options.AzureStorageContainer;
-    const azureStorageTargetDirectory = options.AzureStorageTargetDirectory || "";
+    const azureStorageAccountConnectionString = params.AzureStorageAccountConnectionString;
+    const azureStorageContainer = params.AzureStorageContainer;
+    const azureStorageTargetDirectory = params.AzureStorageTargetDirectory || "";
 
     // initialize the retry policy    
     var retryOperations = new azure.LinearRetryPolicyFilter();

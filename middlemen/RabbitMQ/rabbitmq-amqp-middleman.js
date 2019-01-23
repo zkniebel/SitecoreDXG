@@ -19,6 +19,7 @@
 // third-party
 const amqp = require('amqplib/callback_api');
 const request = require('request');
+const extend = require("extend");
 
 /* EXECUTION */
 
@@ -64,7 +65,7 @@ amqp.connect(connectionString, function(err, conn) {
 
         request(jsonGetUrl, (err, res, data) => {
             if (err) { 
-                return console.error(err); 
+                console.error(err); 
                 _exitProgram(process, 1, conn);
             }
             
@@ -74,8 +75,21 @@ amqp.connect(connectionString, function(err, conn) {
                 _exitProgram(process, 1, conn);
             }            
             if (args.length > 3) {
-                var completionHandlers = args[3];
-                json.Data.CompletionHandlers = JSON.parse(completionHandlers);
+                var options = args[3];
+                // replace space codes with spaces (for powershell support)
+                options = args.length > 4 && args[4] == "true" 
+                    ? options.replace("&nbsp;", " ")
+                    : options;
+
+                var parsedOptions = JSON.parse(options);
+                if (parsedOptions.CompletionHandlers) {
+                    json.Data.CompletionHandlers = parsedOptions.CompletionHandlers;
+                } 
+                if (parsedOptions.DocumentationConfiguration) {
+                    json.Data.DocumentationConfiguration = 
+                        extend(true, json.Data.DocumentationConfiguration, parsedOptions.DocumentationConfiguration);
+                }
+
                 data = JSON.stringify(json);
             }
 
