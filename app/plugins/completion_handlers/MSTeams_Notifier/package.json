@@ -1,0 +1,14 @@
+{
+  "name": "sitecoredxg-msteams-notifier",
+  "version": "1.0.0",
+  "description": "SitecoreDXG completion handler that posts generation completion reports to MS Teams",
+  "main": "msteams-notifier.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Zachary Kniebel",
+  "license": "ISC",
+  "dependencies": {
+    "request": "^2.88.0"
+  }
+}

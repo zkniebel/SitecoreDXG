@@ -21,7 +21,6 @@
 
 // third-party
 const { IncomingWebhook } = require('@slack/client');
-var request = require("request");
 
 
 /**
@@ -117,8 +116,7 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
             validationErrorsData
         ]
     };
-
-    logger.info(JSON.stringify(notificationData));
+    
     var webhook = new IncomingWebhook(params.Url);
 
     webhook.send(notificationData, function (err, res) {
