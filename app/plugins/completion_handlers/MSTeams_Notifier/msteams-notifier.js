@@ -40,7 +40,7 @@ const COMPLETIONHANDLER_ID = "MSTeams_Notifier";
  * @param {object} configurationLoader the configuration loader module
  * @param {object} metaball holds the metadata from the generation
  * @param {object} logger the logger
- * @param {Array<*>} params array of custom parameters
+ * @param {Array<*>} params custom parameters object
  */
 var _execute = function (outputDirectoryPath, configurationLoader, metaball, logger, params) {
     if (!params || !params.Url) {
