@@ -45,10 +45,11 @@ const COMPLETIONHANDLER_ID = "AWS_S3";
  * Executes the completion handler with the given output directory path 
  * @param {string} outputDirectoryPath the path to the output directory
  * @param {object} configurationLoader the configuration loader module
+ * @param {object} metaball holds the metadata from the generation
  * @param {object} logger the logger
- * @param {Array<*>} params array of custom parameters
+ * @param {Array<*>} params custom parameters object
  */
-var _execute = function (outputDirectoryPath, configurationLoader, logger, params) {
+var _execute = function (outputDirectoryPath, configurationLoader, metaball, logger, params) {
     logger.info(`Executing AWS S3 Deployment Completion Handler on output path "${outputDirectoryPath}"`);
     
     const configuration = configurationLoader.getConfiguration();
@@ -59,16 +60,15 @@ var _execute = function (outputDirectoryPath, configurationLoader, logger, param
         async_concurrency = 250;
     }
 
-    var options = params[0];
-    if (!options || !(options.AccessKeyId && options.SecretAccessKey && options.S3BucketName && options.S3FolderPath)) {
-        logger.error("Error while executing the AWS S3 Deployment Completion Handler. A JSON argument must be passed with the AccessKeyId, SecretAccessKey, S3BucketName, and S3FolderPath properties set.");
+    if (!params || !(params.AccessKeyId && params.SecretAccessKey && params.S3BucketName && params.S3FolderPath)) {
+        logger.error("Error while executing the AWS S3 Deployment Completion Handler. A \"Params\" object must be passed with the AccessKeyId, SecretAccessKey, S3BucketName, and S3FolderPath properties set.");
         return;
     }
 
-    const accessKeyId = options.AccessKeyId;
-    const secretAccessKey = options.SecretAccessKey;
-    const s3BucketName = options.S3BucketName;
-    const s3FolderPath = options.S3FolderPath;
+    const accessKeyId = params.AccessKeyId;
+    const secretAccessKey = params.SecretAccessKey;
+    const s3BucketName = params.S3BucketName;
+    const s3FolderPath = params.S3FolderPath;
 
     // initialize S3 client
     const s3 = new AWS.S3({
