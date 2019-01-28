@@ -46,16 +46,13 @@ const configuration = configurationLoader.getConfiguration();
  * @param {function} errorCallback function to call if the generation fails
  */
 const generateMetaDataJson = function(data, successCallback, errorCallback) {
-    // create the metaball to hold the meta data for the generation
-    var metaball = new generationMetadata.Metaball();
-
     // create the target file path at which the output file will be stored
     var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
     var targetFileName = "Architecture.mdj";
     var targetFilePath = path.join(targetFolderPath, targetFileName);
 
     try {      
-        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(data, targetFilePath, metaball);
+        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(data, targetFilePath);
         logger.info(`Generated MDJ file at path "${mdjPath}"`);
     } catch (error) {
         logger.error(error); 
@@ -86,9 +83,6 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
  * @param {function} errorCallback function to call if the generation fails
  */
 const generateDocumentation = function(data, successCallback, errorCallback) {
-    // create the metaball to hold the meta data for the generation
-    var metaball = new generationMetadata.Metaball();
-
     // create the target file path at which the output file will be stored
     var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
     var targetMdjFileName = "Architecture.mdj";
@@ -99,7 +93,7 @@ const generateDocumentation = function(data, successCallback, errorCallback) {
     var targetArchiveFilePath = path.join(targetFolderPath, targetArchiveFileName);
 
     try {
-        mdjre.reverseEngineerMetaDataJsonFile(data, targetMdjFilePath, metaball);
+        mdjre.reverseEngineerMetaDataJsonFile(data, targetMdjFilePath);
         logger.info("Generating HTML Documentation...");
         mdjre.generateHtmlDocumentationArchive(
             targetMdjFilePath,

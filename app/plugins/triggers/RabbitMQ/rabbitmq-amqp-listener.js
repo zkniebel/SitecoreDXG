@@ -20,7 +20,9 @@
  */
 
 // third-party
-var amqp = require('amqplib/callback_api');
+const amqp = require('amqplib/callback_api');
+
+const { Json_Converter } = require("sitecoredxg-serialization");
 
 /**
  * CONSTANTS
@@ -92,7 +94,7 @@ var initialize = function (configurationLoader, generation, logger) {
 
     // create the listener for the documentation generation queue
     _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.DocumentationGenerationQueueName, logger, function (msg, rawData) {
-      var parsedData = JSON.parse(rawData);
+      var parsedData = Json_Converter.deserialize(rawData);
       logger.info("Passing data to documentation generator...");
       generation.generateDocumentation(
         parsedData.Data,
@@ -108,7 +110,7 @@ var initialize = function (configurationLoader, generation, logger) {
 
     // create the listener for the MDJ file generation queue
     _initializeListenerForQueue(conn, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, logger, function (msg, rawData) {
-      var parsedData = JSON.parse(rawData);
+      var parsedData = Json_Converter.deserialize(rawData);
       logger.info("Passing data to metadata-json file generator...");
       generation.generateMetaDataJson(
         parsedData.Data,

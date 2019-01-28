@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "amqplib": "^0.5.2"
+    "amqplib": "^0.5.2",
+    "help": "^3.0.2",
+    "sitecoredxg-serialization": "^1.0.0-rc.2"
   }
 }

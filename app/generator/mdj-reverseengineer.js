@@ -29,6 +29,8 @@ const extend = require("extend");
 const _dagre = require("dagre");
 const _graphlib = require("graphlib");
 
+const { Documentation_Types } = require("sitecoredxg-serialization");
+
 // local
 const fileUtils = require("../common/file-utils.js");
 const logger = require("../common/logging.js").logger;
@@ -460,14 +462,14 @@ function _getJsonTemplates(jsonItem) {
 
 /**
  * Generates the helix diagrams for the architecture based on the given documentation configuration
- * @param {object} documentationConfiguration 
  * @param {object} metaball
+ * @param {object} helixLayerMap
  * @param {Canvas} canvas 
  * @param {object} createdItemViewsCache 
  * @param {object} jsonItemIDsCache 
  * @param {object} layoutOptions 
  */
-function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
+function _generateHelixDiagrams(metaball, helixLayerMap, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
   var __getLayerModuleByID = function(itemID) { 
     var jsonItem = jsonItemIDsCache[itemID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
@@ -477,10 +479,10 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     };
   }; 
 
-  var __createLayerInfo = function(layerRoot, layerModuleFolders, layerIndex) {
+  var __createLayerInfo = function(layerRootID, layerModuleFolders, layerIndex) {
     var layer = {};
-    if (layerRoot) {
-      layer.ReferenceID = layerRoot.ReferenceID;
+    if (layerRootID) {
+      layer.ReferenceID = layerRootID;
       layer.LayerIndex = layerIndex;
       layer.RootJsonItem = jsonItemIDsCache[layer.ReferenceID];
       const rootView = createdItemViewsCache[layer.ReferenceID];
@@ -499,10 +501,23 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   };
   
   // 1) CREATE THE HELIX ARCHITECTURE OBJECT
+  var foundationMap = helixLayerMaps[Documentation_Types.HelixLayerNames.Foundation];
+  var featureMap = helixLayerMaps[Documentation_Types.HelixLayerNames.Feature];
+  var projectMap = helixLayerMaps[Documentation_Types.HelixLayerNames.Project];
+
   var helixArchitecture = {
-    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders, 0),
-    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders, 1),
-    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders, 2)
+    FoundationLayer: __createLayerInfo(
+      foundationMap.RootID, 
+      foundationMap.ModuleFolderIDs, 
+      0),
+    FeatureLayer: __createLayerInfo(
+      featureMap.RootID, 
+      featureMap.ModuleFolderIDs, 
+      1),
+    ProjectLayer: __createLayerInfo(
+      projectMap.RootID, 
+      projectMap.ModuleFolderIDs, 
+      2)
   };
 
   // 2) STOP IF NONE OF THE LAYERS HAVE THE REQUISITE DATA
@@ -1347,70 +1362,8 @@ function createCanvas(width, height, contextType) {
   return new mdjson.Graphics.Canvas(canvasContext);
 }
 
-/**
- * Reverse engineers the mdj file for the given architecture and returns the local path to the resulting file
- * @param {object} architecture the architecture to generate the mdj file for
- * @param {String} outputFilePath the path to the output file
- * @param {object} metaball holds the metadata for the generation report
- * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
- * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
- * @returns {String}
- */
-var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, layoutOptions, canvas) => {
-  /* 0) ASSERT AND FORMAT ARGUMENTS */
 
-  // architecture is required and must have an initialized Items property
-  if (!architecture || !architecture.Items) {
-    throw "The JSON architecture is required and the JSON Items property must be intialized.";
-  }
-
-  // outputFilePath is required
-  if (!outputFilePath) {
-    throw "The output file path is required";
-  }
-
-  // metaball is required
-  if (!metaball) {
-    throw "The metaball is required";
-  }
-
-  // check if DocumentationConfiguration is present
-  var hasDocConfig = architecture.DocumentationConfiguration || false;
-
-  // merge the user specified layout options with the defaults
-  layoutOptions = extend(new LayoutOptions(), layoutOptions);
-
-  // make the canvas fallback to a new canvas with default values
-  canvas = canvas || createCanvas();
-
-  /* 1) CREATE BASIC ENTITIES: PROJECT, ROOT MODEL, TEMPLATES DIAGRAM, AND CLASS DIAGRAMS */
-
-  // create the projet
-  var project = new type.Project();
-  project._type = "Project";
-  project.name = hasDocConfig && architecture.DocumentationConfiguration.DocumentationTitle 
-    ? architecture.DocumentationConfiguration.DocumentationTitle
-    : "Untitled";
-
-  metaball.DocumentationTitle = project.name;
-  if (hasDocConfig) {
-    metaball.ProjectName = architecture.DocumentationConfiguration.ProjectName;
-    metaball.EnvironmentName = architecture.DocumentationConfiguration.EnvironmentName;
-    metaball.CommitAuthor = architecture.DocumentationConfiguration.CommitAuthor;
-    metaball.CommitHash = architecture.DocumentationConfiguration.CommitHash;
-    metaball.CommitLink = architecture.DocumentationConfiguration.CommitLink;
-    metaball.DeployLink = architecture.DocumentationConfiguration.DeployLink;
-  }
-
-
-  // create the root model
-  var rootModel = new type.UMLModel();
-  rootModel._type = "UMLModel";
-  rootModel._parent = project;
-  rootModel.name = "Sitecore Templates Data Model"; // TODO: move to option
-
-  project.ownedElements = [rootModel];
-
+var reverseEngineerItems = function(itemTree, databaseName, metaball, rootModel, layoutOptions, canvas) {
   // create the templates diagram
   var templatesDiagram = new type.UMLClassDiagram();
   templatesDiagram._type = "UMLClassDiagram";
@@ -1432,7 +1385,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
   var jsonItemIDsCache = {};
 
   // creates the folder, template and field models and views
-  architecture.Items.forEach(function (jsonItem) {
+  itemTree.forEach(function (jsonItem) {
     _createItemModelAndView(jsonItem, rootModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
   });
 
@@ -1440,7 +1393,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
 
   // get all the json items in a flat array and then create the relationships for the items
   // *** this needs to run in a separate loop to ensure all items have already been created
-  architecture.Items
+  itemTree
     .map(_getJsonItems)
     .reduce(function (result, entry) { return result.concat(entry); }, [])
     .forEach(function (jsonItem) {
@@ -1476,14 +1429,77 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
   templatesDiagram.layout(layoutOptions.TemplatesDiagram);
   templateFoldersDiagram.layout(layoutOptions.TemplateFoldersDiagram);
 
+  var helixLayerMap = metaball.HelixLayerMaps[databaseName];
+  if (!helixLayerMap) {
+    return;
+  }
+
   /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
   _generateHelixDiagrams(
-    architecture.DocumentationConfiguration, 
     metaball,
+    helixLayerMap,
     canvas, 
     createdItemViewsCache, 
     jsonItemIDsCache,
     layoutOptions);
+};
+
+/**
+ * Reverse engineers the mdj file for the given generation source and returns the local path to the resulting file
+ * @param {object} generationSource the generation source data to generate the mdj file from
+ * @param {String} outputFilePath the path to the output file
+ * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
+ * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
+ * @returns {String}
+ */
+var reverseEngineerMetaDataJsonFile = (generationSource, outputFilePath, layoutOptions, canvas) => {
+  /* 0) ASSERT AND FORMAT ARGUMENTS */
+
+  // generationSource is required and must have an initialized Items property
+  if (!generationSource || !generationSource.Databases) {
+    throw "The JSON generationSource is required and the JSON Databases property must be intialized.";
+  }
+
+  // outputFilePath is required
+  if (!outputFilePath) {
+    throw "The output file path is required";
+  }
+
+  // create the metaball
+  var metaball = generationSource.DocumentationConfiguration || new Documentation_Types.Metaball();
+
+  // merge the user specified layout options with the defaults
+  layoutOptions = extend(new LayoutOptions(), layoutOptions);
+
+  // make the canvas fallback to a new canvas with default values
+  canvas = canvas || createCanvas();
+
+  /* 1) CREATE BASIC ENTITIES: PROJECT, ROOT MODEL, TEMPLATES DIAGRAM, AND CLASS DIAGRAMS */
+
+  // ensure that the documentation title is set 
+  metaball.DocumentationTitle = metaball.DocumentationTitle 
+    ? metaball.DocumentationTitle
+    : "Untitled";
+
+  // create the project
+  var project = new type.Project();
+  project._type = "Project";
+  project.name = metaball.DocumentationTitle;
+
+  generationSource.Databases.forEach(function(database) {
+    var databaseName = database.Name;
+    var itemTree = database.ItemTree;
+
+    // create the root model
+    var rootModel = new type.UMLModel();
+    rootModel._type = "UMLModel";
+    rootModel._parent = project;
+    rootModel.name = databaseName;
+  
+    project.ownedElements = [rootModel];
+
+    reverseEngineerItems(itemTree, databaseName, metaball, rootModel, layoutOptions, canvas);
+  });
   
 
   // serialize the project to JSON
