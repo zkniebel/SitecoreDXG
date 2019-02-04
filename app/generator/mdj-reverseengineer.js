@@ -465,9 +465,10 @@ function _getJsonTemplates(jsonItem) {
  * @param {Canvas} canvas 
  * @param {object} createdItemViewsCache 
  * @param {object} jsonItemIDsCache 
+ * @param {object} inheritanceModelsCache
  * @param {object} layoutOptions 
  */
-function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, layoutOptions) {
+function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, inheritanceModelsCache, layoutOptions) {
   var __getLayerModuleByID = function(itemID) { 
     var jsonItem = jsonItemIDsCache[itemID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
@@ -535,6 +536,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
 
   // validates the dependency described by the given source and target hierarchy models   
   var __validateDependency = function(sourceHierarchyModel, targetHierarchyModel) {
+    // any template can depend on another template within the same layer
+    if (sourceHierarchyModel.ModuleID == targetHierarchyModel.ModuleID) {
+      return { IsValid: true };
+    }
+
     var sourceLayerID = sourceHierarchyModel.LayerID;
     var targetLayerID = targetHierarchyModel.LayerID;
 
@@ -608,6 +614,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
           .map(function(baseTemplateId) { 
             return {
               SourceJsonTemplate: jsonTemplate,
+              SourceHierarchyModel: templateHierarchyIndex[jsonTemplate.ReferenceID],
               TargetHierarchyModel: templateHierarchyIndex[baseTemplateId]
             };
           })
@@ -616,11 +623,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               logger.warn(`The dependency item with ID "${dependency.SourceJsonTemplate.ReferenceID}" was documented but does not belong to a specified Helix Module, and so it will be excluded from the dependencies of the "${jsonTemplate.ReferenceID}" item. If the dependency template belongs to a Helix module, please make sure that its module is selected in the Documentation Configuration item in Sitecore.`);
               return false;
             }
-            return dependency && dependency.TargetHierarchyModel.ModuleID != helixModule.RootJsonItem.ReferenceID;
+            return true;
           })
           .map(function(dependency) {
             var validationResult = __validateDependency(
-              templateHierarchyIndex[dependency.SourceJsonTemplate.ReferenceID], 
+              dependency.SourceHierarchyModel, 
               dependency.TargetHierarchyModel);
 
             dependency.IsValid = validationResult.IsValid;
@@ -636,7 +643,8 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
           var dependencyId = dependencyJsonTemplate.ReferenceID;          
 
           (templateDependentsCache[dependencyId] || (templateDependentsCache[dependencyId] = [])).push({ 
-            SourceHierarchyModel: templateHierarchyIndex[jsonTemplate.ReferenceID],
+            SourceHierarchyModel: dependency.SourceHierarchyModel,
+            TargetHierarchyModel: dependency.TargetHierarchyModel,
             TargetJsonTemplate: dependencyJsonTemplate,
             IsValid: dependency.IsValid,
             ValidationMessage: dependency.ValidationMessage
@@ -708,7 +716,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
       helixModule.JsonTemplates
         .forEach(function (jsonTemplate) { 
           // get/add dependencies from/to cache for each template in the module
-          var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID];
+          var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID]
+            // this is the module diagram, so we don't show dependencies from one template in the module on another template that's also in the module
+            .filter(function(dependency) {
+              return dependency.SourceHierarchyModel.ModuleID != dependency.TargetHierarchyModel.ModuleID;  
+            });
           if (!dependencies.length) {
             return;
           }
@@ -812,7 +824,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
       helixModule.JsonTemplates
         .forEach(function (jsonTemplate) { 
           // get/add dependents from/to cache for each template in the module
-          var dependents = templateDependentsCache[jsonTemplate.ReferenceID];
+          var dependents = templateDependentsCache[jsonTemplate.ReferenceID]
+            // this is the module dependents diagram, so we don't show dependents from one template in the module on another template that's also in the module
+            .filter(function(dependent) {
+              return dependent.SourceHierarchyModel.ModuleID != dependent.TargetHierarchyModel.ModuleID;  
+            });
           if (!dependents.length) {
             return;
           }
@@ -961,9 +977,6 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               canvas,
               createdModuleTemplatesDiagramItemViewsCache);
 
-            // set the dependency's interface view to have the "none" stereotype (this ensures that the dashed lines and arrows will display properly)
-            targetView.stereotypeDisplay = "none"; 
-
             // create the containment view from the dependency's target interface to its module root folder
             _createContainmentRelationshipView(
               targetView, 
@@ -974,12 +987,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
 
           // create the dependency model if it doesn't already exist
           var dependencyModelCacheKey = `"${dependency.SourceJsonTemplate.ReferenceID}"->"${dependency.TargetHierarchyModel.JsonTemplate.ReferenceID}"`;
-          var dependencyModel = createdDependencyModelCache[dependencyModelCacheKey];
+          var dependencyModel = inheritanceModelsCache[dependencyModelCacheKey];
           if (!dependencyModel) {
-            dependencyModel = _createDependencyRelationshipModel(
-              sourceModel,
-              targetView.model);
-            createdDependencyModelCache[dependencyModelCacheKey] = dependencyModel;
+            var msg = `Error: dependency model should already exist as a generalization for dependency with key "${dependencyModelCacheKey}"`;
+            logger.error(msg);
+            throw msg;
           } 
           
           // update the documentation for the dependency
@@ -990,7 +1002,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
           dependencyModel.documentation = documentationEntry;
           
           // create the dependency view
-          var dependencyView = _createDependencyRelationshipView(
+          var dependencyView = _createBaseTemplateRelationshipView(
             dependencyModel, 
             sourceTemplateView, 
             targetView, 
@@ -1045,15 +1057,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
           moduleTemplatesDependentsDiagram,
           canvas,
           createdModuleTemplatesDependentsDiagramItemViewsCache);
-
-        // set the dependent's interface view to have the "none" stereotype (this ensures that the dashed lines and arrows will display properly)
-        targetView.stereotypeDisplay = "none"; 
-
         
         // add the containment view relating the source template to the module root package
         _createContainmentRelationshipView(targetView, moduleRootView, moduleTemplatesDependentsDiagram, canvas);
 
-        // get the templates dependnets from the cache
+        // get the templates dependents from the cache
         var dependents = templateDependentsCache[jsonTemplate.ReferenceID];
         if (!dependents.length) {
           return;
@@ -1110,19 +1118,18 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
               moduleTemplatesDependentsDiagram, 
               canvas);
           }
-
+          
           // create the dependency model if it doesn't already exist
           var dependencyModelCacheKey = `"${dependent.SourceHierarchyModel.JsonTemplate.ReferenceID}"->"${dependent.TargetJsonTemplate.ReferenceID}"`;
-          var dependencyModel = createdDependencyModelCache[dependencyModelCacheKey];
+          var dependencyModel = inheritanceModelsCache[dependencyModelCacheKey];
           if (!dependencyModel) {
-            dependencyModel = _createDependencyRelationshipModel(
-              sourceView.model,
-              targetModel);
-            createdDependencyModelCache[dependencyModelCacheKey] = dependencyModel;
+            var msg = `Error: dependency model should already exist as a generalization for dependency with key "${dependencyModelCacheKey}"`;
+            logger.error(msg);
+            throw msg;
           } 
           
           // create the dependency view
-          var dependencyView = _createDependencyRelationshipView(
+          var dependencyView = _createBaseTemplateRelationshipView(
             dependencyModel, 
             sourceView, 
             targetView, 
@@ -1164,7 +1171,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
       // loop though the module's templates and add the dependencies for each to the diagram
       helixModule.JsonTemplates.forEach(function(jsonTemplate) {
         // get the dependencies for the template from the cache
-        var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID];
+        var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID]
+          // this is the layer diagram, so we don't show dependencies from one template in a module on another template in the same module
+          .filter(function(dependency) {
+            return dependency.SourceHierarchyModel.ModuleID != dependency.TargetHierarchyModel.ModuleID;  
+          });
 
         // loop through the template's dependencies and add each (if not already added) to the diagram
         dependencies.forEach(function (dependency) {
@@ -1262,7 +1273,11 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
       // loop though the module's templates and add the dependents for each to the diagram
       helixModule.JsonTemplates.forEach(function(jsonTemplate) {
         // get the dependents for the template from the cache
-        var dependents = templateDependentsCache[jsonTemplate.ReferenceID];
+        var dependents = templateDependentsCache[jsonTemplate.ReferenceID]
+          // this is the layer dependents diagram, so we don't show dependents from one template in a module on another template in the same module
+          .filter(function(dependent) {
+            return dependent.SourceHierarchyModel.ModuleID != dependent.TargetHierarchyModel.ModuleID;  
+          });
 
         // loop through the template's dependents and add each (if not already added) to the diagram
         dependents.forEach(function (dependent) {
@@ -1427,9 +1442,10 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
 
   /* 2) CREATE ALL OF THE MODELS AND VIEWS FOR THE ITEMS */
 
-  // create the map objects to use for storing the mappings from the created items' IDs to their views and item IDs to JSON items
+  // create the map objects to use for storing the mappings from the created items' IDs to their models/views and item IDs to JSON items
   var createdItemViewsCache = {};
   var jsonItemIDsCache = {};
+  var createdInheritanceModelsCache = {};
 
   // creates the folder, template and field models and views
   architecture.Items.forEach(function (jsonItem) {
@@ -1453,7 +1469,10 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
         jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
           var baseTemplateView = createdItemViewsCache[jsonBaseTemplateId];
 
+          // this is the first time looking at the base templates of the items and base templates can't be repeated so we know we need to do this every time
+          var modelCacheKey = `"${jsonItem.ReferenceID}"->"${jsonBaseTemplateId}"`;
           var model = _createBaseTemplateRelationshipModel(view.model, baseTemplateView.model);
+          createdInheritanceModelsCache[modelCacheKey] = model;
 
           _createBaseTemplateRelationshipView(model, view, baseTemplateView, templatesDiagram, canvas);
         });
@@ -1483,6 +1502,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
     canvas, 
     createdItemViewsCache, 
     jsonItemIDsCache,
+    createdInheritanceModelsCache,
     layoutOptions);
   
 
