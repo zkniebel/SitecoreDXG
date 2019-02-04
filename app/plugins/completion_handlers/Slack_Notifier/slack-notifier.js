@@ -71,9 +71,13 @@ var _execute = function (outputDirectoryPath, configurationLoader, metaball, log
         basicInfoFields.push({ "title": "Completed", "value": `<!date^${Math.round(metaball.EndTime / 1000)}^{date_short_pretty} at {time_secs}|Date format error>`, "short": true });
     }
 
-    var actions = metaball.DeployLink
-        ? [{ "type": "button", "text": "View the Documentation", "url": metaball.DeployLink }]
-        : [];
+    var actions = [];
+    if (metaball.DeployLink) {
+        actions.push({ "type": "button", "text": "View the Documentation", "url": metaball.DeployLink });
+    }
+    if (metaball.CommitLink) {
+        actions.push({ "type": "button", "text": "View the Commit", "url": metaball.CommitLink })
+    }
 
     var validationErrorsData = {};
     if (metaball.ValidationErrorsDetected) {
