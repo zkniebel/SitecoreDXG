@@ -16,9 +16,12 @@
  
 /* DEPENDENCIES */
 
+// node
+const fs = require("fs");
+
 // third-party
-const amqp = require('amqplib/callback_api');
-const request = require('request');
+const amqp = require("amqplib/callback_api");
+const request = require("request");
 const extend = require("extend");
 
 /* EXECUTION */
@@ -39,8 +42,8 @@ var _exitProgram = function(process, exitCode, connection) {
 
 
 var args = process.argv.slice(2);
-var connectionString = args[0];
 
+var connectionString = args[0];
 if (!connectionString) {
     console.log("No connectionString was passed. Program terminating without sending.");
     return;
@@ -75,12 +78,12 @@ amqp.connect(connectionString, function(err, conn) {
                 _exitProgram(process, 1, conn);
             }            
             if (args.length > 3) {
-                var options = args[3];
-                // replace space codes with spaces (for powershell support)
-                options = args.length > 4 && args[4] == "true" 
-                    ? options.replace("&nbsp;", " ")
-                    : options;
-
+                var options = undefined;
+                var optionsFilePath = args[3];
+                if (optionsFilePath) {
+                    options = fs.readFileSync(optionsFilePath);
+                }
+                
                 var parsedOptions = JSON.parse(options);
                 if (parsedOptions.CompletionHandlers) {
                     json.Data.CompletionHandlers = parsedOptions.CompletionHandlers;
