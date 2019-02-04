@@ -562,7 +562,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             ___addValidationErrorToMetaball(helixArchitecture.ProjectLayer.LayerIndex);
             return { 
                 IsValid: false, 
-                Message: "Templates in the Project Layer cannot depend on templates from other modules in the Project Layer" 
+                Message: `INVALID: Templates in the Project Layer cannot depend on templates from other modules in the Project Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
             };
         }
         // feature -> project
@@ -570,7 +570,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
-                Message: "Templates in the Feature Layer cannot depend on templates in the Project Layer" 
+                Message: `INVALID: Templates in the Feature Layer cannot depend on templates in the Project Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
             };
         }
         // foundation -> project
@@ -578,7 +578,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
-                Message: "Templates in the Foundation Layer cannot depend on templates in the Project Layer" 
+                Message: `INVALID: Templates in the Foundation Layer cannot depend on templates in the Project Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
             };            
         }
     } 
@@ -589,7 +589,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
-                Message: "Templates in the Feature Layer cannot depend on templates from other modules in the Feature Layer" 
+                Message: `INVALID: Templates in the Feature Layer cannot depend on templates from other modules in the Feature Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
             };
         }
     
@@ -598,7 +598,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
             ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
             return { 
                 IsValid: false, 
-                Message: "Templates in the Foundation Layer cannot depend on templates in the Feature Layer" 
+                Message: `INVALID: Templates in the Foundation Layer cannot depend on templates in the Feature Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
             };            
         }
     }
