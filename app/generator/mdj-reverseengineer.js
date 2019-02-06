@@ -575,7 +575,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
         }
         // foundation -> project
         if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
-            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
+            ___addValidationErrorToMetaball(helixArchitecture.FoundationLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: `INVALID: Templates in the Foundation Layer cannot depend on templates in the Project Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
@@ -595,7 +595,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     
         // foundation -> feature
         if (sourceLayerID == helixArchitecture.FoundationLayer.ReferenceID) {
-            ___addValidationErrorToMetaball(helixArchitecture.FeatureLayer.LayerIndex);
+            ___addValidationErrorToMetaball(helixArchitecture.FoundationLayer.LayerIndex);
             return { 
                 IsValid: false, 
                 Message: `INVALID: Templates in the Foundation Layer cannot depend on templates in the Feature Layer: "${sourceHierarchyModel.JsonTemplate.Path}"->"${targetHierarchyModel.JsonTemplate.Path}"`
