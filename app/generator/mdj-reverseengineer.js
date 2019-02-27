@@ -32,6 +32,7 @@ const _graphlib = require("graphlib");
 // local
 const fileUtils = require("../common/file-utils.js");
 const logger = require("../common/logging.js").logger;
+const { SolutionStatistics, HelixStatistics, HelixLayerStatistics, HelixModuleStatistics } = require("./generation-metadata.js");
 
 /*
  * GLOBALS
@@ -1338,6 +1339,63 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   __createDiagramsForLayer(helixArchitecture.FoundationLayer);
   __createDiagramsForLayer(helixArchitecture.FeatureLayer);
   __createDiagramsForLayer(helixArchitecture.ProjectLayer);
+
+  // create solution statistics
+  var __createLayerStatistics = function(layer) {
+    return new HelixLayerStatistics(
+      layer.ReferenceID,
+      layer.Modules.map(function(helixModule) {
+        return new HelixModuleStatistics(
+          helixModule.RootJsonItem.ReferenceID,
+          helixModule.JsonTemplates.length,
+          helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) { 
+            // get dependencies excluding those within the same module
+            var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID]
+              .filter(function(dependency) { return dependency.SourceHierarchyModel.ModuleID != dependency.TargetHierarchyModel.ModuleID });
+            return accumulator + dependencies.length;
+          }, 0),
+          helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) {
+            // get dependents excluding those within the same module
+            var dependents = templateDependentsCache[jsonTemplate.ReferenceID]
+              .filter(function(dependent) { return dependent.SourceHierarchyModel.ModuleID != dependent.TargetHierarchyModel.ModuleID });
+            return accumulator + dependents.length;
+          }, 0)
+        );
+      })
+    );
+  };
+
+  metaball.SolutionStatistics = new SolutionStatistics(new HelixStatistics(
+    __createLayerStatistics(helixArchitecture.FoundationLayer),
+    __createLayerStatistics(helixArchitecture.FeatureLayer),
+    __createLayerStatistics(helixArchitecture.ProjectLayer)
+  ));
+
+  
+  // update the documentation for the layer and module models to include the layer and module statistics
+  var __updateStatisticsDocumentationForLayer = function(layer) {
+    var layerModelDocumentation = layer.RootModel.documentation;
+    if (layerModelDocumentation) {
+      layerModelDocumentation += "  \n  \n";
+    }
+    var layerStats = metaball.SolutionStatistics.HelixStatistics.IDsToLayersMap[layer.ReferenceID];
+    layerModelDocumentation += `**Total Templates:** ${layerStats.getTotalTemplates()}  \n**Total Modules:** ${layerStats.getTotalModules()}  \n**Total Module Dependencies:** ${layerStats.getTotalModuleDependencies()}  \n**Total Module Dependents:** ${layerStats.getTotalModuleDependents()}`;
+    layer.RootModel.documentation = layerModelDocumentation;
+
+    layer.Modules.forEach(function(helixModule) {
+      var moduleModelDocumentation = helixModule.RootModel.documentation;
+      if (moduleModelDocumentation) {
+        moduleModelDocumentation += "  \n  \n";
+      }
+      var moduleStats = metaball.SolutionStatistics.HelixStatistics.IDsToModulesMap[helixModule.RootJsonItem.ReferenceID];
+      moduleModelDocumentation += `**Total Templates:** ${moduleStats.TotalTemplates}  \n**Total Dependencies:** ${moduleStats.TotalDependencies}  \n**Total Dependents:** ${moduleStats.TotalDependents}`;
+      helixModule.RootModel.documentation = moduleModelDocumentation;
+    });
+  };
+
+  __updateStatisticsDocumentationForLayer(helixArchitecture.FoundationLayer);
+  __updateStatisticsDocumentationForLayer(helixArchitecture.FeatureLayer);
+  __updateStatisticsDocumentationForLayer(helixArchitecture.ProjectLayer);
 };
 
 /*
@@ -1454,6 +1512,11 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
 
   /* 3) CREATE ALL OF THE ITEM RELATIONSHIP MODELS AND VIEWS */
 
+  var totalTemplates = 0;
+  var totalTemplateFolders = 0;
+  var totalTemplateFields = 0;
+  var totalTemplateInheritance = 0;
+
   // get all the json items in a flat array and then create the relationships for the items
   // *** this needs to run in a separate loop to ensure all items have already been created
   architecture.Items
@@ -1466,6 +1529,10 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
 
       // create the base template relationship models and views
       if (jsonItem.IsTemplate) {
+        totalTemplates++;
+        totalTemplateFields += jsonItem.Fields.length;
+        totalTemplateInheritance += jsonItem.BaseTemplates.length;
+
         jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
           var baseTemplateView = createdItemViewsCache[jsonBaseTemplateId];
 
@@ -1478,6 +1545,8 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
         });
         // create the parent-child relationship views
       } else {
+        totalTemplateFolders++;
+
         var parentModel = view.model._parent;
         var parentView = createdItemViewsCache[parentModel._id];
 
@@ -1504,7 +1573,28 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
     jsonItemIDsCache,
     createdInheritanceModelsCache,
     layoutOptions);
-  
+    
+  // update the solution statistics
+  if (!metaball.SolutionStatistics) {
+    metaball.SolutionStatistics = new SolutionStatistics();    
+  }
+
+  metaball.SolutionStatistics.TotalTemplates = totalTemplates;
+  metaball.SolutionStatistics.TotalTemplateFields = totalTemplateFields;
+  metaball.SolutionStatistics.TotalTemplateInheritance = totalTemplateInheritance;
+  metaball.SolutionStatistics.TotalTemplateFolders = totalTemplateFolders;
+
+  // add the solution statistics to the project model
+  var documentation = project.documentation;
+  if (documentation) {
+    documentation += "  \n  \n";
+  }
+  documentation += `**Total Templates:** ${totalTemplates}  \n**Total Template Fields:** ${totalTemplateFields}  \n**Total Template Inheritance Relationships:** ${totalTemplateInheritance}  \n**Total Template Folders:** ${totalTemplateFolders}`;
+  var helixStats = metaball.SolutionStatistics.HelixStatistics;
+  documentation = helixStats
+    ? documentation + `  \n  \n**Total Helix Templates:** ${helixStats.getTotalTemplates()}  \n**Total Helix Modules:** ${helixStats.getTotalModules()}  \n**Total Helix Module Dependencies:** ${helixStats.getTotalModuleDependencies()}  \n  \n**Foundation Layer Templates:** ${helixStats.FoundationLayer.getTotalTemplates()}  \n**Foundation Layer Modules:** ${helixStats.FoundationLayer.getTotalModules()}  \n**Foundation Layer Module Dependencies:** ${helixStats.FoundationLayer.getTotalModuleDependencies()}  \n**Foundation Layer Module Dependents:** ${helixStats.FoundationLayer.getTotalModuleDependents()}  \n  \n**Feature Layer Templates:** ${helixStats.FeatureLayer.getTotalTemplates()}  \n**Feature Layer Modules:** ${helixStats.FeatureLayer.getTotalModules()}  \n**Feature Layer Module Dependencies:** ${helixStats.FeatureLayer.getTotalModuleDependencies()}  \n**Feature Layer Module Dependents:** ${helixStats.FeatureLayer.getTotalModuleDependents()}  \n  \n**Project Layer Templates:** ${helixStats.ProjectLayer.getTotalTemplates()}  \n**Project Layer Modules:** ${helixStats.ProjectLayer.getTotalModules()}  \n**Project Layer Module Dependencies:** ${helixStats.ProjectLayer.getTotalModuleDependencies()}  \n**Project Layer Module Dependents:** ${helixStats.ProjectLayer.getTotalModuleDependents()}`
+    : documentation;
+  project.documentation = documentation;
 
   // serialize the project to JSON
   var mdjcontent = mdjson.Repository.writeObject(project);
