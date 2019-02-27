@@ -67,9 +67,9 @@ function HelixLayerStatistics(layerID, helixModuleStatistics) {
  * @summary gets the total number of templates in the layer
  */
 HelixLayerStatistics.prototype.getTotalTemplates = function() {
-    return this.HelixModuleStatistics.reduce(function(accumulator, helixModuleStatistics) { 
-        return accumulator + helixModuleStatistics.TotalTemplates; 
-    });
+    return this.HelixModuleStatistics.reduce(function(accumulator, moduleStatistics) { 
+        return accumulator + moduleStatistics.TotalTemplates; 
+    }, 0);
 };
 /**
  * @summary gets the total number of modules in the layer
@@ -81,17 +81,17 @@ HelixLayerStatistics.prototype.getTotalModules = function() {
  * @summary gets the total number of dependencies in the layer
  */
 HelixLayerStatistics.prototype.getTotalModuleDependencies = function() {
-    return this.HelixModuleStatistics.reduce(function(accumulator, helixModuleStatistics) { 
-        return accumulator + helixModuleStatistics.TotalDependencies; 
-    });
+    return this.HelixModuleStatistics.reduce(function(accumulator, moduleStatistics) { 
+        return accumulator + moduleStatistics.TotalDependencies; 
+    }, 0);
 };
 /**
  * @summary gets the total number of dependents in the layer
  */
 HelixLayerStatistics.prototype.getTotalModuleDependents = function() {
-    return this.HelixModuleStatistics.reduce(function(accumulator, helixModuleStatistics) { 
-        return accumulator + helixModuleStatistics.TotalDependents; 
-    });
+    return this.HelixModuleStatistics.reduce(function(accumulator, moduleStatistics) { 
+        return accumulator + moduleStatistics.TotalDependents; 
+    }, 0);
 };
 
 /**
@@ -129,7 +129,7 @@ function HelixStatistics(foundationLayerStatistics, featureLayerStatistics, proj
     this.IDsToModulesMap = layersArray
         .reduce(function(arr, layerStats) { return arr.concat(layerStats.HelixModuleStatistics); }, [])
         .reduce(function(map, moduleStats) {
-            map[moduleStats.LayerID] = moduleStats;
+            map[moduleStats.ModuleID] = moduleStats;
             return map;
         }, {});
 };

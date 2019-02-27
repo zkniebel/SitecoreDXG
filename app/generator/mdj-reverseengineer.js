@@ -663,37 +663,6 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   __initializeDependencyCachesByLayer(helixArchitecture.FeatureLayer);
   __initializeDependencyCachesByLayer(helixArchitecture.ProjectLayer);
 
-  // create solution statistics
-  var __createLayerStatistics = function(layer) {
-    return new HelixLayerStatistics(
-      layer.ReferenceID,
-      layer.Modules.map(function(helixModule) {
-        return new HelixModuleStatistics(
-          helixModule.RootJsonItem.ReferenceID,
-          helixModule.JsonTemplates.length,
-          helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) { 
-            // get dependencies excluding those within the same module
-            var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID]
-              .filter(function(dependency) { return dependency.SourceHierarchyModel.ModuleID != dependency.TargetHierarchyModel.ModuleID });
-            return accumulator + dependencies.length;
-          }, 0),
-          helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) {
-            // get dependents excluding those within the same module
-            var dependents = templateDependentsCache[jsonTemplate.ReferenceID]
-              .filter(function(dependent) { return dependent.SourceHierarchyModel.ModuleID != dependent.TargetHierarchyModel.ModuleID });
-            return accumulator + dependents.length;
-          }, 0)
-        );
-      })
-    );
-  };
-
-  metaball.SolutionStatistics = new SolutionStatistics(new HelixStatistics(
-    __createLayerStatistics(helixArchitecture.FoundationLayer),
-    __createLayerStatistics(helixArchitecture.FeatureLayer),
-    __createLayerStatistics(helixArchitecture.ProjectLayer)
-  ));
-
   // set up the dependent models cache (to ensure that depencency models are only added once)
   var createdDependencyModelCache = {};
 
@@ -1371,6 +1340,37 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   __createDiagramsForLayer(helixArchitecture.FeatureLayer);
   __createDiagramsForLayer(helixArchitecture.ProjectLayer);
 
+  // create solution statistics
+  var __createLayerStatistics = function(layer) {
+    return new HelixLayerStatistics(
+      layer.ReferenceID,
+      layer.Modules.map(function(helixModule) {
+        return new HelixModuleStatistics(
+          helixModule.RootJsonItem.ReferenceID,
+          helixModule.JsonTemplates.length,
+          helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) { 
+            // get dependencies excluding those within the same module
+            var dependencies = templateDependenciesCache[jsonTemplate.ReferenceID]
+              .filter(function(dependency) { return dependency.SourceHierarchyModel.ModuleID != dependency.TargetHierarchyModel.ModuleID });
+            return accumulator + dependencies.length;
+          }, 0),
+          helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) {
+            // get dependents excluding those within the same module
+            var dependents = templateDependentsCache[jsonTemplate.ReferenceID]
+              .filter(function(dependent) { return dependent.SourceHierarchyModel.ModuleID != dependent.TargetHierarchyModel.ModuleID });
+            return accumulator + dependents.length;
+          }, 0)
+        );
+      })
+    );
+  };
+
+  metaball.SolutionStatistics = new SolutionStatistics(new HelixStatistics(
+    __createLayerStatistics(helixArchitecture.FoundationLayer),
+    __createLayerStatistics(helixArchitecture.FeatureLayer),
+    __createLayerStatistics(helixArchitecture.ProjectLayer)
+  ));
+
   
   // update the documentation for the layer and module models to include the layer and module statistics
   var __updateStatisticsDocumentationForLayer = function(layer) {
@@ -1383,13 +1383,13 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     layer.RootModel.documentation = layerModelDocumentation;
 
     layer.Modules.forEach(function(helixModule) {
-      var modulelModelDocumentation = helixModule.RootModel.documentation;
-      if (modulelModelDocumentation) {
-        modulelModelDocumentation += "  \n  \n";
+      var moduleModelDocumentation = helixModule.RootModel.documentation;
+      if (moduleModelDocumentation) {
+        moduleModelDocumentation += "  \n  \n";
       }
-      var moduleStats = metaball.SolutionStatistics.HelixStatistics.IDsToModulesMap[helixModule.ReferenceID];
-      modulelModelDocumentation += `**Total Templates:** ${moduleStats.TotalTemplates}  \n**Total Dependencies:** ${moduleStats.TotalDependencies}  \n**Total Dependents:** ${moduleStats.TotalDependents}`;
-      helixModule.RootModel.documentation = modulelModelDocumentation;
+      var moduleStats = metaball.SolutionStatistics.HelixStatistics.IDsToModulesMap[helixModule.RootJsonItem.ReferenceID];
+      moduleModelDocumentation += `**Total Templates:** ${moduleStats.TotalTemplates}  \n**Total Dependencies:** ${moduleStats.TotalDependencies}  \n**Total Dependents:** ${moduleStats.TotalDependents}`;
+      helixModule.RootModel.documentation = moduleModelDocumentation;
     });
   };
 
@@ -1584,17 +1584,17 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
   metaball.SolutionStatistics.TotalTemplateInheritance = totalTemplateInheritance;
   metaball.SolutionStatistics.TotalTemplateFolders = totalTemplateFolders;
 
-  // add the solution statistics to the root model
-  var documentation = rootModel.documentation;
+  // add the solution statistics to the project model
+  var documentation = project.documentation;
   if (documentation) {
     documentation += "  \n  \n";
   }
   documentation += `**Total Templates:** ${totalTemplates}  \n**Total Template Fields:** ${totalTemplateFields}  \n**Total Template Inheritance Relationships:** ${totalTemplateInheritance}  \n**Total Template Folders:** ${totalTemplateFolders}`;
   var helixStats = metaball.SolutionStatistics.HelixStatistics;
   documentation = helixStats
-    ? documentation + `  \n**Total Helix Templates:** ${helixStats.getTotalTemplates()}  \n**Total Helix Modules:** ${helixStats.getTotalModules()}  \n**Total Helix Module Dependencies:** ${helixStats.getTotalModuleDependencies()}  \n**Total Helix Module Dependents:** ${helixStats.getTotalModuleDependents()}`
+    ? documentation + `  \n  \n**Total Helix Templates:** ${helixStats.getTotalTemplates()}  \n**Total Helix Modules:** ${helixStats.getTotalModules()}  \n**Total Helix Module Dependencies:** ${helixStats.getTotalModuleDependencies()}  \n  \n**Foundation Layer Templates:** ${helixStats.FoundationLayer.getTotalTemplates()}  \n**Foundation Layer Modules:** ${helixStats.FoundationLayer.getTotalModules()}  \n**Foundation Layer Module Dependencies:** ${helixStats.FoundationLayer.getTotalModuleDependencies()}  \n**Foundation Layer Module Dependents:** ${helixStats.FoundationLayer.getTotalModuleDependents()}  \n  \n**Feature Layer Templates:** ${helixStats.FeatureLayer.getTotalTemplates()}  \n**Feature Layer Modules:** ${helixStats.FeatureLayer.getTotalModules()}  \n**Feature Layer Module Dependencies:** ${helixStats.FeatureLayer.getTotalModuleDependencies()}  \n**Feature Layer Module Dependents:** ${helixStats.FeatureLayer.getTotalModuleDependents()}  \n  \n**Project Layer Templates:** ${helixStats.ProjectLayer.getTotalTemplates()}  \n**Project Layer Modules:** ${helixStats.ProjectLayer.getTotalModules()}  \n**Project Layer Module Dependencies:** ${helixStats.ProjectLayer.getTotalModuleDependencies()}  \n**Project Layer Module Dependents:** ${helixStats.ProjectLayer.getTotalModuleDependents()}`
     : documentation;
-  rootModel.documentation = documentation;
+  project.documentation = documentation;
 
   // serialize the project to JSON
   var mdjcontent = mdjson.Repository.writeObject(project);
