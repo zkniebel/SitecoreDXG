@@ -1533,11 +1533,17 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
         totalTemplateFields += jsonItem.Fields.length;
         totalTemplateInheritance += jsonItem.BaseTemplates.length;
 
+        jsonItem.BaseTemplates = jsonItem.BaseTemplates.filter(function(jsonBaseTemplateId) {
+          return createdItemViewsCache[jsonBaseTemplateId];
+        });
+
+        // if the base template view doesn't exist then it was never received (should've been filtered out upstream, but just in case)
         jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
           var baseTemplateView = createdItemViewsCache[jsonBaseTemplateId];
 
           // this is the first time looking at the base templates of the items and base templates can't be repeated so we know we need to do this every time
           var modelCacheKey = `"${jsonItem.ReferenceID}"->"${jsonBaseTemplateId}"`;
+          
           var model = _createBaseTemplateRelationshipModel(view.model, baseTemplateView.model);
           createdInheritanceModelsCache[modelCacheKey] = model;
 
