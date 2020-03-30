@@ -54,8 +54,11 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
     var targetFileName = "Architecture.mdj";
     var targetFilePath = path.join(targetFolderPath, targetFileName);
 
+    // TODO: change this to a loop over the databases when support for multiple databases is added
+    var database = data[0];
+
     try {      
-        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(data, targetFilePath, metaball);
+        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(database.ItemTree, targetFilePath, metaball);
         logger.info(`Generated MDJ file at path "${mdjPath}"`);
     } catch (error) {
         logger.error(error); 

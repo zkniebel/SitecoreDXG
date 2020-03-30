@@ -22,6 +22,7 @@
 const logger = require("../common/logging.js").logger;
 const configurationLoader = require("../common/configuration-loader.js");
 const generation = require("./generation.js");
+const serializer = require("../../serializer/sitecoredxg-serializer.js"); //TODO: change to read path from config file setting
 
 /**
  * TYPES
@@ -52,7 +53,7 @@ function TriggerManager() {
         }
 
         logger.info(`Initializing trigger "${id}"...`);
-        initializer(configurationLoader, generation, logger);
+        initializer(configurationLoader, generation, logger, serializer);
     }
 };
 

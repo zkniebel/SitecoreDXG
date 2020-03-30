@@ -59,3 +59,30 @@ glob.sync("./plugins/triggers/**{,!(node_modules)/**}*.js").forEach(function(fil
 
 triggerManager.initializeTrigger(configuration.Trigger);
 
+
+
+
+/** 
+ * TESTING
+ */
+
+const fs = require("fs");
+const generation = require("./generator/generation.js");
+const logger = require("./common/logging.js").logger;
+const unicorn_converter = require("../serializer/converters/unicorn-converter.js");
+
+const unicornSourcesGlob = "C:/Dev/Habitat/src/**/serialization{,/!(Roles)/**}/*.yml";
+const databaseNames = [ "master" ];
+var sitecoreDatabases = unicorn_converter.readAndParseDatabases(unicornSourcesGlob, databaseNames);
+
+generation.generateMetaDataJson(
+    sitecoreDatabases,
+    function (mdjPath, targetFileName, targetFolderPath, targetFilePath) {
+      logger.info(`Metadata-JSON file saved to: "${targetFilePath}"`);
+      logger.info(`Generation completed successfully!`);
+    },
+    function (error) {
+      logger.error(`Generation failed with error: "${error}"`);
+    }
+);
+
