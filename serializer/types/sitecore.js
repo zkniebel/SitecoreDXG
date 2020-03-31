@@ -317,7 +317,7 @@ StandardValues.prototype.constructor = StandardValues;
 /**
  * @summary Represents a Sitecore databases
  * @param {string} name the name of the database
- * @param {Array<Item>} itemTree the tree of items that live in the database
+ * @param {object} itemTree the tree of items that live in the database
  */
 function Database(name, itemTree = {}) {
     Entity.call(this, TypeNames.Database);

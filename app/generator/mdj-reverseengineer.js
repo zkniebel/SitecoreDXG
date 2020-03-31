@@ -298,7 +298,7 @@ function _createTemplateModel(jsonTemplate, parentModel) {
   parentModel.ownedElements.push(model);
 
   jsonTemplate.TemplateSections.forEach((jsonSection) => {
-    jsonSection.forEach((jsonField) => {
+    jsonSection.TemplateFields.forEach((jsonField) => {
       _createFieldModel(jsonField, jsonSection, model);
     });
   });
@@ -348,7 +348,7 @@ function _createTemplateView(model, diagram, canvas, createdItemViewsCache) {
 
 /**
  *  Creates a new UMLPackage model for the given JSON folder and its descendents and returns the model
-  * @param {Sitecore_Type.TemplateFolder} jsonFolder the folder item to create the model and view for
+  * @param {Sitecore_Types.TemplateFolder} jsonFolder the folder item to create the model and view for
   * @param {Model} parentModel the parent model
   * @param {UMLClassDiagram} templatesDiagram diagram for the templates
   * @param {UMLPackageDiagram} templateFoldersDiagram diagram for the template folders
@@ -398,7 +398,7 @@ function _createFolderView(model, diagram, canvas, createdItemViewsCache) {
 
 /**
  * Creates the model and view for the JSON template item and returns the view
-  * @param {Sitecore_Type.Template} jsonTemplate the JSON template item
+  * @param {Sitecore_Types.Template} jsonTemplate the JSON template item
   * @param {Model} parentModel the parent model
   * @param {UMLDiagram} diagram the diagram to display the view
   * @param {Canvas} canvas the canvas for drawing and sizing the view
@@ -1433,20 +1433,20 @@ function createCanvas(width, height, contextType) {
 }
 
 /**
- * Reverse engineers the mdj file for the given architecture and returns the local path to the resulting file
- * @param {object} architecture the architecture to generate the mdj file for
+ * Reverse engineers the mdj file for the given database and returns the local path to the resulting file
+ * @param {Sitecore_Types.Database} database the database to generate the mdj file for
  * @param {String} outputFilePath the path to the output file
  * @param {object} metaball holds the metadata for the generation report
  * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
  * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
  * @returns {String}
  */
-var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, layoutOptions, canvas) => {
-  /* 0) ASSERT AND FORMAT ARGUMENTS */
+var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layoutOptions, canvas) => {
+  /* 0) ASSERT AND FORMAT ARGUMENTS */ 
 
-  // architecture is required and must have an initialized Items property
-  if (!architecture) {
-    throw "The ItemsTree for the Database is required.";
+  // database is required and must have an initialized ItemTree property
+  if (!database || !database.ItemTree) {
+    throw "The ItemTree for the Database is required.";
   }
 
   // outputFilePath is required
@@ -1459,8 +1459,10 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
     throw "The metaball is required";
   }
 
+  // TODO: documentation configuration must be added in as a separate parameter
+
   // check if DocumentationConfiguration is present
-  var hasDocConfig = architecture.DocumentationConfiguration || false;
+  var hasDocConfig = database.DocumentationConfiguration || false;
 
   // merge the user specified layout options with the defaults
   layoutOptions = extend(new LayoutOptions(), layoutOptions);
@@ -1473,18 +1475,18 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
   // create the projet
   var project = new type.Project();
   project._type = "Project";
-  project.name = hasDocConfig && architecture.DocumentationConfiguration.DocumentationTitle 
-    ? architecture.DocumentationConfiguration.DocumentationTitle
+  project.name = hasDocConfig && database.DocumentationConfiguration.DocumentationTitle 
+    ? database.DocumentationConfiguration.DocumentationTitle
     : "Untitled";
 
   metaball.DocumentationTitle = project.name;
   if (hasDocConfig) {
-    metaball.ProjectName = architecture.DocumentationConfiguration.ProjectName;
-    metaball.EnvironmentName = architecture.DocumentationConfiguration.EnvironmentName;
-    metaball.CommitAuthor = architecture.DocumentationConfiguration.CommitAuthor;
-    metaball.CommitHash = architecture.DocumentationConfiguration.CommitHash;
-    metaball.CommitLink = architecture.DocumentationConfiguration.CommitLink;
-    metaball.DeployLink = architecture.DocumentationConfiguration.DeployLink;
+    metaball.ProjectName = database.DocumentationConfiguration.ProjectName;
+    metaball.EnvironmentName = database.DocumentationConfiguration.EnvironmentName;
+    metaball.CommitAuthor = database.DocumentationConfiguration.CommitAuthor;
+    metaball.CommitHash = database.DocumentationConfiguration.CommitHash;
+    metaball.CommitLink = database.DocumentationConfiguration.CommitLink;
+    metaball.DeployLink = database.DocumentationConfiguration.DeployLink;
   }
 
 
@@ -1522,7 +1524,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
   }
 
   // creates the folder, template and field models and views
-  Object.values(architecture).forEach(function (jsonItem) {
+  Object.values(database.ItemTree).forEach(function (jsonItem) {
     if (jsonItem instanceof Sitecore_Types.Template || jsonItem instanceof Sitecore_Types.TemplateFolder) {
       _createItemModelAndView(jsonItem, rootModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
     }
@@ -1537,7 +1539,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
 
   // get all the json items in a flat array and then create the relationships for the items
   // *** this needs to run in a separate loop to ensure all items have already been created
-  architecture.Items
+  database.Items
     .map(_getJsonItems)
     .reduce(function (result, entry) { return result.concat(entry); }, [])
     .forEach(function (jsonItem) {
@@ -1590,7 +1592,7 @@ var reverseEngineerMetaDataJsonFile = (architecture, outputFilePath, metaball, l
 
   /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
   _generateHelixDiagrams(
-    architecture.DocumentationConfiguration, 
+    database.DocumentationConfiguration, 
     metaball,
     canvas, 
     createdItemViewsCache, 

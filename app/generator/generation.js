@@ -58,7 +58,7 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
     var database = data[0];
 
     try {      
-        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(database.ItemTree, targetFilePath, metaball);
+        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(database, targetFilePath, metaball);
         logger.info(`Generated MDJ file at path "${mdjPath}"`);
     } catch (error) {
         logger.error(error); 
