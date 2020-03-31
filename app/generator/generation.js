@@ -26,7 +26,7 @@ const path = require("path");
 const configurationLoader = require("../common/configuration-loader.js");
 const logger = require("../common/logging.js").logger;
 const mdjre = require("./mdj-reverseengineer.js");
-const generationMetadata = require("./generation-metadata.js");
+const Documentation_Types = require("../../serializer/types/documentation.js");
 const completionHandlerManager = require("./completion-handler-manager.js").completionHandlerManager;
 
 /**
@@ -41,13 +41,13 @@ const configuration = configurationLoader.getConfiguration();
 
 /**
  * Generates the meta-data json file (.MDJ) based on the given architecture
- * @param {Array<Sitecore_Types.Database>} databases the architecture object to generate the .MDJ file from
+ * @param {Documentation_Types.GenerationSource} generationSource the source data generate documentation from
  * @param {function} successCallback function to call if the generation is successful
  * @param {function} errorCallback function to call if the generation fails
  */
-const generateMetaDataJson = function(databases, successCallback, errorCallback) {
+const generateMetaDataJson = function(generationSource, successCallback, errorCallback) {
     // create the metaball to hold the meta data for the generation
-    var metaball = new generationMetadata.Metaball();
+    var metaball = new Documentation_Types.Metaball();
 
     // create the target file path at which the output file will be stored
     var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
@@ -55,10 +55,15 @@ const generateMetaDataJson = function(databases, successCallback, errorCallback)
     var targetFilePath = path.join(targetFolderPath, targetFileName);
 
     // TODO: change this to a loop over the databases when support for multiple databases is added
-    var database = databases[0];
+    var database = generationSource.Databases[0];
+    var helixDatabaseMap = generationSource.DocumentationConfiguration.HelixDatabaseMaps[database.Name];
 
     try {      
-        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(database, targetFilePath, metaball);
+        var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(
+            database, 
+            targetFilePath, 
+            generationSource.DocumentationConfiguration,
+            helixDatabaseMap);
         logger.info(`Generated MDJ file at path "${mdjPath}"`);
     } catch (error) {
         logger.error(error); 
@@ -84,14 +89,11 @@ const generateMetaDataJson = function(databases, successCallback, errorCallback)
 
 /**
  * Generates the HTML documentation and meta-data json file (.MDJ) based on the given architecture
- * @param {Array<Sitecore_Types.Database>} databases the architecture object to generate documentation
+ * @param {Documentation_Types.GenerationSource} generationSource the source data generate documentation from
  * @param {function} successCallback function to call if the generation is successful
  * @param {function} errorCallback function to call if the generation fails
  */
-const generateDocumentation = function(databases, successCallback, errorCallback) {
-    // create the metaball to hold the meta data for the generation
-    var metaball = new generationMetadata.Metaball();
-
+const generateDocumentation = function(generationSource, successCallback, errorCallback) {
     // create the target file path at which the output file will be stored
     var targetFolderPath = configuration.createBucketedOutputSubdirectoryPath(true);
     var targetMdjFileName = "Architecture.mdj";
@@ -102,10 +104,15 @@ const generateDocumentation = function(databases, successCallback, errorCallback
     var targetArchiveFilePath = path.join(targetFolderPath, targetArchiveFileName);    
 
     // TODO: change this to a loop over the databases when support for multiple databases is added
-    var database = databases[0];
+    var database = generationSource.Databases[0];
+    var helixDatabaseMap = generationSource.DocumentationConfiguration.HelixDatabaseMaps[database.Name];
 
     try {
-        mdjre.reverseEngineerMetaDataJsonFile(database, targetMdjFilePath, metaball);
+        mdjre.reverseEngineerMetaDataJsonFile(
+            database, 
+            targetMdjFilePath, 
+            generationSource.DocumentationConfiguration,
+            helixDatabaseMap);
         logger.info("Generating HTML Documentation...");
         mdjre.generateHtmlDocumentationArchive(
             targetMdjFilePath,

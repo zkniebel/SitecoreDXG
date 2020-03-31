@@ -34,8 +34,8 @@ const fileUtils = require("../common/file-utils.js");
 const logger = require("../common/logging.js").logger;
 
 const Sitecore_Types = require("../../serializer/types/sitecore.js");
+const Documentation_Types = require("../../serializer/types/documentation.js");
 const Sitecore_Constants = require("../../serializer/constants/sitecore.js");
-const { SolutionStatistics, HelixStatistics, HelixLayerStatistics, HelixModuleStatistics } = require("./generation-metadata.js");
 
 /*
  * GLOBALS
@@ -477,15 +477,15 @@ function _getJsonTemplates(jsonItem) {
 
 /**
  * Generates the helix diagrams for the architecture based on the given documentation configuration
- * @param {object} documentationConfiguration 
- * @param {object} metaball
+ * @param {Documentation_Types.Metaball} metaball
+ * @param {Documentation_Types.HelixDatabaseMap} helixDatabaseMap
  * @param {Canvas} canvas 
  * @param {object} createdItemViewsCache 
  * @param {object} jsonItemIDsCache 
  * @param {object} inheritanceModelsCache
  * @param {object} layoutOptions 
  */
-function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, createdItemViewsCache, jsonItemIDsCache, inheritanceModelsCache, layoutOptions) {
+function _generateHelixDiagrams(metaball, helixDatabaseMap, canvas, createdItemViewsCache, jsonItemIDsCache, inheritanceModelsCache, layoutOptions) {
   var __getLayerModuleByID = function(itemID) { 
     var jsonItem = jsonItemIDsCache[itemID]; // note that the input item is a lean version of the JsonFolder object, without children
     return {
@@ -495,7 +495,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     };
   }; 
 
-  var __createLayerInfo = function(layerRoot, layerModuleFolders, layerIndex) {
+  var __createLayerInfo = function(layerRoot, layerModuleFolderIDs, layerIndex) {
     var layer = {};
     if (layerRoot) {
       layer.ID = layerRoot.ID;
@@ -503,9 +503,9 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
       layer.RootJsonItem = jsonItemIDsCache[layer.ID];
       const rootView = createdItemViewsCache[layer.ID];
       layer.RootModel = rootView ? rootView.model : undefined;
-      layer.Modules = layerModuleFolders
-        .map(function(leanJsonItem) {
-          return __getLayerModuleByID(leanJsonItem.ID);
+      layer.Modules = layerModuleFolderIDs
+        .map(function(layerModuleFolderID) {
+          return __getLayerModuleByID(layerModuleFolderID);
         });
 
       metaball.ValidationErrors[layerIndex] = { Name: layer.RootJsonItem.Name, Entries: [] };
@@ -518,9 +518,9 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
   
   // 1) CREATE THE HELIX ARCHITECTURE OBJECT
   var helixArchitecture = {
-    FoundationLayer: __createLayerInfo(documentationConfiguration.FoundationLayerRoot, documentationConfiguration.FoundationModuleFolders, 0),
-    FeatureLayer: __createLayerInfo(documentationConfiguration.FeatureLayerRoot, documentationConfiguration.FeatureModuleFolders, 1),
-    ProjectLayer: __createLayerInfo(documentationConfiguration.ProjectLayerRoot, documentationConfiguration.ProjectModuleFolders, 2)
+    FoundationLayer: __createLayerInfo(helixDatabaseMap.Foundation.RootID, helixDatabaseMap.Foundation.ModuleFolderIDs, 0),
+    FeatureLayer: __createLayerInfo(helixDatabaseMap.Feature.RootID, helixDatabaseMap.Feature.ModuleFolderIDs, 1),
+    ProjectLayer: __createLayerInfo(helixDatabaseMap.Project.RootID, helixDatabaseMap.Project.ModuleFolderIDs, 2)
   };
 
   // 2) STOP IF NONE OF THE LAYERS HAVE THE REQUISITE DATA
@@ -1358,10 +1358,10 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
 
   // create solution statistics
   var __createLayerStatistics = function(layer) {
-    return new HelixLayerStatistics(
+    return new Documentation_Types.HelixLayerStatistics(
       layer.ID,
       layer.Modules.map(function(helixModule) {
-        return new HelixModuleStatistics(
+        return new Documentation_Types.HelixModuleStatistics(
           helixModule.RootJsonItem.ID,
           helixModule.JsonTemplates.length,
           helixModule.JsonTemplates.reduce(function(accumulator, jsonTemplate) { 
@@ -1381,7 +1381,7 @@ function _generateHelixDiagrams(documentationConfiguration, metaball, canvas, cr
     );
   };
 
-  metaball.SolutionStatistics = new SolutionStatistics(new HelixStatistics(
+  metaball.SolutionStatistics = new Documentation_Types.SolutionStatistics(new Documentation_Types.HelixStatistics(
     __createLayerStatistics(helixArchitecture.FoundationLayer),
     __createLayerStatistics(helixArchitecture.FeatureLayer),
     __createLayerStatistics(helixArchitecture.ProjectLayer)
@@ -1440,12 +1440,13 @@ function createCanvas(width, height, contextType) {
  * Reverse engineers the mdj file for the given database and returns the local path to the resulting file
  * @param {Sitecore_Types.Database} database the database to generate the mdj file for
  * @param {String} outputFilePath the path to the output file
- * @param {object} metaball holds the metadata for the generation report
+ * @param {Documentation_Types.Metaball} metaball holds the metadata for the generation report
+ * @param {Documentation_Types.HelixDatabaseMap} helixDatabaseMap holds the helix structure information for the architecture
  * @param {LayoutOptions} layoutOptions (Optional) the formatting options for the diagrams (Default: LayoutOptions defaults)
  * @param {Canvas} canvas (Optional) the canvas on which to draw/size the views
  * @returns {String}
  */
-var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layoutOptions, canvas) => {
+var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, helixDatabaseMap, layoutOptions, canvas) => {
   /* 0) ASSERT AND FORMAT ARGUMENTS */ 
 
   // database is required and must have an initialized ItemTree property
@@ -1463,11 +1464,6 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layou
     throw "The metaball is required";
   }
 
-  // TODO: documentation configuration must be added in as a separate parameter
-
-  // check if DocumentationConfiguration is present
-  var hasDocConfig = database.DocumentationConfiguration || false;
-
   // merge the user specified layout options with the defaults
   layoutOptions = extend(new LayoutOptions(), layoutOptions);
 
@@ -1479,20 +1475,9 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layou
   // create the projet
   var project = new type.Project();
   project._type = "Project";
-  project.name = hasDocConfig && database.DocumentationConfiguration.DocumentationTitle 
-    ? database.DocumentationConfiguration.DocumentationTitle
+  project.name = metaball.DocumentationTitle 
+    ? metaball.DocumentationTitle
     : "Untitled";
-
-  metaball.DocumentationTitle = project.name;
-  if (hasDocConfig) {
-    metaball.ProjectName = database.DocumentationConfiguration.ProjectName;
-    metaball.EnvironmentName = database.DocumentationConfiguration.EnvironmentName;
-    metaball.CommitAuthor = database.DocumentationConfiguration.CommitAuthor;
-    metaball.CommitHash = database.DocumentationConfiguration.CommitHash;
-    metaball.CommitLink = database.DocumentationConfiguration.CommitLink;
-    metaball.DeployLink = database.DocumentationConfiguration.DeployLink;
-  }
-
 
   // create the root model
   var rootModel = new type.UMLModel();
@@ -1595,18 +1580,20 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layou
   templateFoldersDiagram.layout(layoutOptions.TemplateFoldersDiagram);
 
   /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
-  // _generateHelixDiagrams(
-  //   database.DocumentationConfiguration, 
-  //   metaball,
-  //   canvas, 
-  //   createdItemViewsCache, 
-  //   jsonItemIDsCache,
-  //   createdInheritanceModelsCache,
-  //   layoutOptions);
+  if (helixDatabaseMap) {
+    _generateHelixDiagrams(
+      metaball,
+      helixDatabaseMap,
+      canvas, 
+      createdItemViewsCache, 
+      jsonItemIDsCache,
+      createdInheritanceModelsCache,
+      layoutOptions);
+  }
     
   // update the solution statistics
   if (!metaball.SolutionStatistics) {
-    metaball.SolutionStatistics = new SolutionStatistics();    
+    metaball.SolutionStatistics = new Documentation_Types.SolutionStatistics();    
   }
 
   metaball.SolutionStatistics.TotalTemplates = totalTemplates;
