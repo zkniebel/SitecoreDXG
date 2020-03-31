@@ -167,7 +167,8 @@ function Template(id, templateID, parent, path, baseTemplates = [], templateSect
     /**
      * @property the IDs of the base templates of the template
      */
-    this.BaseTemplates = baseTemplates;
+    this.BaseTemplates = baseTemplates
+        .map((baseTemplateId) => baseTemplateId.substring(1, baseTemplateId.length - 1).toLowerCase());
     /**
      * @property the @see TemplateSection items that belong to the template
      */

@@ -303,6 +303,8 @@ function _createTemplateModel(jsonTemplate, parentModel) {
     });
   });
 
+  model.documentation = `**ID:** \`{${jsonTemplate.ID.toUpperCase()}}\``;
+
   // TODO: add support for creating a Standard Values model as a child of the Template model
 
   return model;
