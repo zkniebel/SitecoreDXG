@@ -488,6 +488,10 @@ function _getJsonTemplates(jsonItem) {
 function _generateHelixDiagrams(metaball, helixDatabaseMap, canvas, createdItemViewsCache, jsonItemIDsCache, inheritanceModelsCache, layoutOptions) {
   var __getLayerModuleByID = function(itemID) { 
     var jsonItem = jsonItemIDsCache[itemID]; // note that the input item is a lean version of the JsonFolder object, without children
+    if (!jsonItem || !jsonItem.ID) {
+      logger.error(`Module folder with ID "{${itemID.toUpperCase()}}" was not found. It is likely that this item is referenced in your configuration but does not exist in the serialized data`);
+      return;
+    }
     return {
       RootJsonItem: jsonItem,
       RootModel: createdItemViewsCache[jsonItem.ID].model,
@@ -495,8 +499,9 @@ function _generateHelixDiagrams(metaball, helixDatabaseMap, canvas, createdItemV
     };
   }; 
 
-  var __createLayerInfo = function(layerRoot, layerModuleFolderIDs, layerIndex) {
+  var __createLayerInfo = function(layerRootID, layerModuleFolderIDs, layerIndex) {
     var layer = {};
+    var layerRoot = jsonItemIDsCache[layerRootID];
     if (layerRoot) {
       layer.ID = layerRoot.ID;
       layer.LayerIndex = layerIndex;
@@ -506,7 +511,8 @@ function _generateHelixDiagrams(metaball, helixDatabaseMap, canvas, createdItemV
       layer.Modules = layerModuleFolderIDs
         .map(function(layerModuleFolderID) {
           return __getLayerModuleByID(layerModuleFolderID);
-        });
+        })
+        .filter((layerModule) => typeof layerModule !== "undefined");
 
       metaball.ValidationErrors[layerIndex] = { Name: layer.RootJsonItem.Name, Entries: [] };
     } else {
