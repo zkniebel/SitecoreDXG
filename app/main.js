@@ -75,7 +75,7 @@ const unicornSourcesGlob = "C:/Dev/Habitat/src/**/serialization{,/!(Roles)/**}/*
 const databaseNames = [ "master" ];
 var sitecoreDatabases = unicorn_converter.readAndParseDatabases(unicornSourcesGlob, databaseNames);
 
-generation.generateMetaDataJson(
+generation.generateDocumentation(
     sitecoreDatabases,
     function (mdjPath, targetFileName, targetFolderPath, targetFilePath) {
       logger.info(`Metadata-JSON file saved to: "${targetFilePath}"`);

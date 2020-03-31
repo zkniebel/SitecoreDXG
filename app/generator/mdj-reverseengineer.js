@@ -242,11 +242,11 @@ function _createFieldModel(jsonField, jsonSection, templateModel) {
 
   var title = jsonField.getLanguages()
     .map((language) => 
-      `\n        ${language}:  ${jsonField.getFieldValue(Sitecore_Constants.TEMPLATE_FIELD_TITLE_FIELD_ID, language)}`)
+      `  \n  - ${JSON.stringify(language)}:  \`${JSON.stringify(jsonField.getFieldValue(Sitecore_Constants.TEMPLATE_FIELD_TITLE_FIELD_ID, language))}\``)
     .join('');
 
   model.documentation =
-    "**Title:** `" + JSON.stringify(title) + "`  \n" +
+    "**Title:** " + title + "  \n" +
     "**SectionName:** `" + JSON.stringify(jsonSection.Name) + "`  \n" +
     "**Source:** `" + JSON.stringify(jsonField.Source) + "`  \n" +
     "**Shared:** `" + JSON.stringify(jsonField.Shared) + "`  \n" +
@@ -446,16 +446,18 @@ function _createItemModelAndView(jsonItem, parentModel, templatesDiagram, templa
 
 /**
  * Gets a flat array of JSON items from the given JSON item
- * @param {JsonItem} jsonItem the item to get the array of JSON items from
- * @returns {Array<JsonItem>}
+ * @param {Sitecore_Types.Item} jsonItem the item to get the array of JSON items from
+ * @returns {Array<Sitecore_Types.Item>}
  */
 function _getJsonItems(jsonItem) {
   return (jsonItem instanceof Sitecore_Types.Template)
     ? [jsonItem]
-    : [jsonItem]
-      .concat(jsonItem.Children
-        .map(_getJsonItems))
-      .reduce(function (result, entry) { return result.concat(entry); }, []);
+    : (jsonItem instanceof Sitecore_Types.TemplateFolder)
+      ? [jsonItem]
+        .concat(jsonItem.Children
+          .map(_getJsonItems))
+        .reduce(function (result, entry) { return result.concat(entry); }, [])
+      : [];
 };
 
 /**
@@ -1519,12 +1521,11 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layou
   var jsonItemIDsCache = {};
   var createdInheritanceModelsCache = {};
 
-  if (Sitecore_Types) {
-    // do nothing
-  }
+  // ItemTree is a map of ID->Items for the serialized root items of the database
+  var itemTreeRoots = Object.values(database.ItemTree);
 
   // creates the folder, template and field models and views
-  Object.values(database.ItemTree).forEach(function (jsonItem) {
+  itemTreeRoots.forEach(function (jsonItem) {
     if (jsonItem instanceof Sitecore_Types.Template || jsonItem instanceof Sitecore_Types.TemplateFolder) {
       _createItemModelAndView(jsonItem, rootModel, templatesDiagram, templateFoldersDiagram, canvas, createdItemViewsCache);
     }
@@ -1539,50 +1540,51 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layou
 
   // get all the json items in a flat array and then create the relationships for the items
   // *** this needs to run in a separate loop to ensure all items have already been created
-  database.Items
+  var allItems = itemTreeRoots
     .map(_getJsonItems)
-    .reduce(function (result, entry) { return result.concat(entry); }, [])
-    .forEach(function (jsonItem) {
-      jsonItemIDsCache[jsonItem.ID] = jsonItem;
-      
-      var view = createdItemViewsCache[jsonItem.ID];
+    .reduce(function (result, entry) { return result.concat(entry); }, []);
+  
+  allItems.forEach(function (jsonItem) {
+    jsonItemIDsCache[jsonItem.ID] = jsonItem;
+    
+    var view = createdItemViewsCache[jsonItem.ID];
 
-      // create the base template relationship models and views
-      if (jsonItem instanceof Sitecore_Types.Template) {
-        totalTemplates++;
-        totalTemplateFields += jsonItem.Fields.length;
-        totalTemplateInheritance += jsonItem.BaseTemplates.length;
+    // create the base template relationship models and views
+    if (jsonItem instanceof Sitecore_Types.Template) {
+      totalTemplates++;
+      totalTemplateFields += jsonItem.getFields().length;
+      totalTemplateInheritance += jsonItem.BaseTemplates.length;
 
-        // if the base template view doesn't exist then it was never received (should've been filtered out upstream, but just in case)
-        jsonItem.BaseTemplates = jsonItem.BaseTemplates.filter(function(jsonBaseTemplateId) {
-          return createdItemViewsCache[jsonBaseTemplateId];
-        });
+      // if the base template view doesn't exist then it was never received (should've been filtered out upstream, but just in case)
+      jsonItem.BaseTemplates = jsonItem.BaseTemplates.filter(function(jsonBaseTemplateId) {
+        return createdItemViewsCache[jsonBaseTemplateId];
+      });
 
-        jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
-          var baseTemplateView = createdItemViewsCache[jsonBaseTemplateId];
+      jsonItem.BaseTemplates.forEach(function (jsonBaseTemplateId) {
+        var baseTemplateView = createdItemViewsCache[jsonBaseTemplateId];
 
-          // this is the first time looking at the base templates of the items and base templates can't be repeated so we know we need to do this every time
-          var modelCacheKey = `"${jsonItem.ID}"->"${jsonBaseTemplateId}"`;
-          
-          var model = _createBaseTemplateRelationshipModel(view.model, baseTemplateView.model);
-          createdInheritanceModelsCache[modelCacheKey] = model;
+        // this is the first time looking at the base templates of the items and base templates can't be repeated so we know we need to do this every time
+        var modelCacheKey = `"${jsonItem.ID}"->"${jsonBaseTemplateId}"`;
+        
+        var model = _createBaseTemplateRelationshipModel(view.model, baseTemplateView.model);
+        createdInheritanceModelsCache[modelCacheKey] = model;
 
-          _createBaseTemplateRelationshipView(model, view, baseTemplateView, templatesDiagram, canvas);
-        });
-        // create the parent-child relationship views
-      } else {
-        totalTemplateFolders++;
+        _createBaseTemplateRelationshipView(model, view, baseTemplateView, templatesDiagram, canvas);
+      });
+      // create the parent-child relationship views
+    } else {
+      totalTemplateFolders++;
 
-        var parentModel = view.model._parent;
-        var parentView = createdItemViewsCache[parentModel._id];
+      var parentModel = view.model._parent;
+      var parentView = createdItemViewsCache[parentModel._id];
 
-        // may not have a parent if it is a root folder (e.g. Foundation, Feature or Project, in Helix)
-        if (!parentView) {
-          return;
-        }
-        _createContainmentRelationshipView(view, parentView, templateFoldersDiagram, canvas);
+      // may not have a parent if it is a root folder (e.g. Foundation, Feature or Project, in Helix)
+      if (!parentView) {
+        return;
       }
-    });
+      _createContainmentRelationshipView(view, parentView, templateFoldersDiagram, canvas);
+    }
+  });
 
   /* 4) CLEANUP/REFORMAT THE DIAGRAMS */
 
@@ -1591,14 +1593,14 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, layou
   templateFoldersDiagram.layout(layoutOptions.TemplateFoldersDiagram);
 
   /* 5) CREATE, CLEANUP AND REFORMAT THE HELIX DIAGRAMS */
-  _generateHelixDiagrams(
-    database.DocumentationConfiguration, 
-    metaball,
-    canvas, 
-    createdItemViewsCache, 
-    jsonItemIDsCache,
-    createdInheritanceModelsCache,
-    layoutOptions);
+  // _generateHelixDiagrams(
+  //   database.DocumentationConfiguration, 
+  //   metaball,
+  //   canvas, 
+  //   createdItemViewsCache, 
+  //   jsonItemIDsCache,
+  //   createdInheritanceModelsCache,
+  //   layoutOptions);
     
   // update the solution statistics
   if (!metaball.SolutionStatistics) {

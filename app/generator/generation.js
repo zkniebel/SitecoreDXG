@@ -41,11 +41,11 @@ const configuration = configurationLoader.getConfiguration();
 
 /**
  * Generates the meta-data json file (.MDJ) based on the given architecture
- * @param {object} data the architecture object to generate the .MDJ file from
+ * @param {Array<Sitecore_Types.Database>} databases the architecture object to generate the .MDJ file from
  * @param {function} successCallback function to call if the generation is successful
  * @param {function} errorCallback function to call if the generation fails
  */
-const generateMetaDataJson = function(data, successCallback, errorCallback) {
+const generateMetaDataJson = function(databases, successCallback, errorCallback) {
     // create the metaball to hold the meta data for the generation
     var metaball = new generationMetadata.Metaball();
 
@@ -55,7 +55,7 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
     var targetFilePath = path.join(targetFolderPath, targetFileName);
 
     // TODO: change this to a loop over the databases when support for multiple databases is added
-    var database = data[0];
+    var database = databases[0];
 
     try {      
         var mdjPath = mdjre.reverseEngineerMetaDataJsonFile(database, targetFilePath, metaball);
@@ -84,11 +84,11 @@ const generateMetaDataJson = function(data, successCallback, errorCallback) {
 
 /**
  * Generates the HTML documentation and meta-data json file (.MDJ) based on the given architecture
- * @param {object} data the architecture object to generate the architecture from
+ * @param {Array<Sitecore_Types.Database>} databases the architecture object to generate documentation
  * @param {function} successCallback function to call if the generation is successful
  * @param {function} errorCallback function to call if the generation fails
  */
-const generateDocumentation = function(data, successCallback, errorCallback) {
+const generateDocumentation = function(databases, successCallback, errorCallback) {
     // create the metaball to hold the meta data for the generation
     var metaball = new generationMetadata.Metaball();
 
@@ -99,10 +99,13 @@ const generateDocumentation = function(data, successCallback, errorCallback) {
     var targetHtmlDocFolderName = "Html_Docs";
     var targetHtmlDocFolderPath = path.join(targetFolderPath, targetHtmlDocFolderName);
     var targetArchiveFileName = targetHtmlDocFolderName + ".zip";
-    var targetArchiveFilePath = path.join(targetFolderPath, targetArchiveFileName);
+    var targetArchiveFilePath = path.join(targetFolderPath, targetArchiveFileName);    
+
+    // TODO: change this to a loop over the databases when support for multiple databases is added
+    var database = databases[0];
 
     try {
-        mdjre.reverseEngineerMetaDataJsonFile(data, targetMdjFilePath, metaball);
+        mdjre.reverseEngineerMetaDataJsonFile(database, targetMdjFilePath, metaball);
         logger.info("Generating HTML Documentation...");
         mdjre.generateHtmlDocumentationArchive(
             targetMdjFilePath,
