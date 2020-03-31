@@ -34,6 +34,7 @@ const fileUtils = require("../common/file-utils.js");
 const logger = require("../common/logging.js").logger;
 
 const Sitecore_Types = require("../../serializer/types/sitecore.js");
+const Sitecore_Constants = require("../../serializer/constants/sitecore.js");
 const { SolutionStatistics, HelixStatistics, HelixLayerStatistics, HelixModuleStatistics } = require("./generation-metadata.js");
 
 /*
@@ -227,29 +228,34 @@ function _createTagModel(name, kind, value) {
 
 /**
  * Creates and returns the attribute model for the given JSON field 
- * @param {Sitecore_Type.TemplateField} jsonField the JSON field to create the attribtue from
+ * @param {Sitecore_Types.TemplateField} jsonField the field to create the attribtue from
+ * @param {Sitecore_Types.TemplateSection} jsonSection the section under which the field is stored 
  * @param {UMLInterface} templateModel the template to add the new attribute model to
  * @returns {UMLAttribute}
  */
-function _createFieldModel(jsonField, templateModel) {
+function _createFieldModel(jsonField, jsonSection, templateModel) {
   var model = new type.UMLAttribute();
   model._type = "UMLAttribute";
   model._parent = templateModel;
   model.name = jsonField.Name;
   model.type = jsonField.FieldType;
+
+  var title = jsonField.getLanguages()
+    .map((language) => 
+      `\n        ${language}:  ${jsonField.getFieldValue(Sitecore_Constants.TEMPLATE_FIELD_TITLE_FIELD_ID, language)}`)
+    .join('');
+
   model.documentation =
-    "**Title:** `" + JSON.stringify(jsonField.Title) + "`  \n" +
-    "**SectionName:** `" + JSON.stringify(jsonField.SectionName) + "`  \n" +
+    "**Title:** `" + JSON.stringify(title) + "`  \n" +
+    "**SectionName:** `" + JSON.stringify(jsonSection.Name) + "`  \n" +
     "**Source:** `" + JSON.stringify(jsonField.Source) + "`  \n" +
-    "**StandardValue:** `" + JSON.stringify(jsonField.StandardValue) + "`  \n" +
     "**Shared:** `" + JSON.stringify(jsonField.Shared) + "`  \n" +
     "**Unversioned:** `" + JSON.stringify(jsonField.Unversioned) + "`  \n";
 
   model.ownedElements = [
-    _createTagModel("Title", "string", jsonField.Title),
-    _createTagModel("SectionName", "string", jsonField.SectionName),
+    _createTagModel("Title", "string", title),
+    _createTagModel("SectionName", "string", jsonSection.Name),
     _createTagModel("Source", "string", jsonField.Source),
-    _createTagModel("StandardValue", "string", jsonField.StandardValue),
     _createTagModel("Shared", "string", jsonField.Shared),
     _createTagModel("Unversioned", "string", jsonField.Unversioned)
   ];
@@ -291,9 +297,13 @@ function _createTemplateModel(jsonTemplate, parentModel) {
 
   parentModel.ownedElements.push(model);
 
-  jsonTemplate.getFields().forEach(function (jsonField) {
-    _createFieldModel(jsonField, model);
+  jsonTemplate.TemplateSections.forEach((jsonSection) => {
+    jsonSection.forEach((jsonField) => {
+      _createFieldModel(jsonField, jsonSection, model);
+    });
   });
+
+  // TODO: add support for creating a Standard Values model as a child of the Template model
 
   return model;
 };
