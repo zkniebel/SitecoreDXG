@@ -260,45 +260,45 @@ HelixDatabaseMap.prototype.constructor = HelixDatabaseMap;
 
 /**
  * @summary Represents the metadata for the documentation
- * @param {string} DocumentationTitle the title to use for the generated documentation
- * @param {string} ProjectName the name of the project
- * @param {string} EnvironmentName the name of the environment
- * @param {string} CommitAuthor the commit author
- * @param {string} CommitHash the commit hash
- * @param {string} CommitLink the URL to view the commit
- * @param {string} DeployLink the URL to view the generated documentation
+ * @param {string} documentationTitle the title to use for the generated documentation
+ * @param {string} projectName the name of the project
+ * @param {string} environmentName the name of the environment
+ * @param {string} commitAuthor the commit author
+ * @param {string} commitHash the commit hash
+ * @param {string} commitLink the URL to view the commit
+ * @param {string} deployLink the URL to view the generated documentation
  */
-function Metaball(DocumentationTitle = "", ProjectName = "", EnvironmentName = "", CommitAuthor = "", CommitHash = "", CommitLink = "", DeployLink = "") {
+function Metaball(documentationTitle = "", projectName = "", environmentName = "", commitAuthor = "", commitHash = "", commitLink = "", deployLink = "") {
     Entity.call(this, TypeNames.Metaball);
 
     /**
      * @property project name passed in the input data
      */
-    this.ProjectName = "";
+    this.ProjectName = projectName;
     /**
      * @property environment name passed in the input data
      */
-    this.EnvironmentName = "";
+    this.EnvironmentName = environmentName;
     /**
      * @property name of the author passed in the input data
      */
-    this.CommitAuthor = "";
+    this.CommitAuthor = commitAuthor;
     /**
      * @property commit hash passed in the input data
      */
-    this.CommitHash = "";
+    this.CommitHash = commitHash;
     /**
      * @property commit link passed in the input data
      */
-    this.CommitLink = "";
+    this.CommitLink = commitLink;
     /**
      * @property documentation title passed in the input data
      */
-    this.DocumentationTitle = "";
+    this.DocumentationTitle = documentationTitle;
     /**
      * @property deploy link passed in the input data
      */
-    this.DeployLink = "";
+    this.DeployLink = deployLink;
 
     /**
      * @property dictionary mapping helix layer names (as keys) to their respective helix database maps in the source
