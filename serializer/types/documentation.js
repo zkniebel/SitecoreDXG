@@ -336,14 +336,16 @@ Metaball.prototype.constructor = Metaball;
  * @param {Metaball} metaball the metadata for the generation 
  * @param {Array<Database>} databases array of databases holding the items in the solution 
  * @param {object} helixDatabaseMaps map of database names to their helix database maps
+ * @param {Array<object>} completionHandlerConfigurations array of configurations for completion handlers to be run
  */
-function GenerationSource(metaball, databases, helixDatabaseMaps = {}) {
+function GenerationSource(metaball, databases, helixDatabaseMaps = {}, completionHandlerConfigurations = undefined) {
     Entity.call(this, TypeNames.GenerationSource);
 
     metaball.HelixDatabaseMaps = helixDatabaseMaps;
 
     this.DocumentationConfiguration = metaball;
     this.Databases = databases;
+    this.CompletionHandlerConfigurations = completionHandlerConfigurations;
 };
 
 GenerationSource.prototype = Object.create(Entity.prototype);

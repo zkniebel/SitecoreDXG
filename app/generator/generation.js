@@ -83,7 +83,7 @@ const generateMetaDataJson = function(generationSource, successCallback, errorCa
     metaball.EndTime = Date.now();
 
     // call the completion handlers
-    var completionHandlers = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
+    var completionHandlers = generationSource.CompletionHandlerConfigurations || configuration.DefaultCompletionHandlers; 
     completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, metaball);
 };
 
@@ -129,7 +129,7 @@ const generateDocumentation = function(generationSource, successCallback, errorC
                 metaball.EndTime = Date.now();
 
                 // call the completion handlers
-                var completionHandlers = data.CompletionHandlers || configuration.DefaultCompletionHandlers; 
+                var completionHandlers = generationSource.CompletionHandlerConfigurations || configuration.DefaultCompletionHandlers; 
                 completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, metaball);
             },
             function (error) {
