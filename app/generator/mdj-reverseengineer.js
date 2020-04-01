@@ -1485,6 +1485,17 @@ var reverseEngineerMetaDataJsonFile = (database, outputFilePath, metaball, helix
     ? metaball.DocumentationTitle
     : "Untitled";
 
+  project.author = metaball.CommitAuthor;
+  project.version = metaball.CommitHash;
+
+  project.documentation = 
+    `**Project Name:** \`${metaball.ProjectName}\`  \n`
+    + `**Environment:** \`${metaball.EnvironmentName}\`  \n`
+    + `**Deployment Link:** [${metaball.DeployLink}](View Instance)  \n`
+    + `**Commit Author:** \`${metaball.CommitAuthor}\`  \n`
+    + `**Commit Hash:** \`${metaball.CommitHash}\`  \n`
+    + `**Commit Link:** [${metaball.CommitLink}](View Commit)  \n`;
+
   // create the root model
   var rootModel = new type.UMLModel();
   rootModel._type = "UMLModel";
