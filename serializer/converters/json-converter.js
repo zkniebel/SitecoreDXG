@@ -23,8 +23,8 @@ const circular_json = require("flatted/cjs");
 
 // local
 const sitecore_constants = require("../constants/sitecore.js");
-const { Template, TemplateSection, TemplateField, TemplateFolder, StandardValues, Database, TypeNames } = require("../types/sitecore.js");
-
+const Sitecore_Types = require("../types/sitecore.js");
+const Documentation_Types = require("../types/documentation.js");
 
 /**
  * FACTORY METHODS
@@ -54,28 +54,58 @@ var deserialize = function (source) {
 
         switch (value.TemplateID) {
             case sitecore_constants.FOLDER_TEMPLATE_ID:
-                value.__proto__ = TemplateFolder.prototype;
+                value.__proto__ = Sitecore_Types.TemplateFolder.prototype;
                 break;
             case sitecore_constants.TEMPLATE_FOLDER_TEMPLATE_ID:
-                value.__proto__ = TemplateFolder.prototype;
+                value.__proto__ = Sitecore_Types.TemplateFolder.prototype;
                 break;
             case sitecore_constants.TEMPLATE_TEMPLATE_ID:
-                value.__proto__ = Template.prototype;
+                value.__proto__ = Sitecore_Types.Template.prototype;
                 break;
             case sitecore_constants.TEMPLATE_SECTION_TEMPLATE_ID:
-                value.__proto__ = TemplateSection.prototype;
+                value.__proto__ = Sitecore_Types.TemplateSection.prototype;
                 break;
             case sitecore_constants.TEMPLATE_FIELD_TEMPLATE_ID:
-                value.__proto__ = TemplateField.prototype;
+                value.__proto__ = Sitecore_Types.TemplateField.prototype;
                 break;
             default:
                 // object may be standardvalues, database or somethign else
-                if (value.Type == TypeNames.Database) {
-                    value.__proto__ = Database.prototype;
-                } else if (value.Type == TypeNames.StandardValues) {
-                    value.__proto__ = StandardValues.prototype;
+                switch (value.Type) {
+                    case Sitecore_Types.TypeNames.Database:
+                        value.__proto__ = Sitecore_Types.Database.prototype;
+                        break;
+                    case Sitecore_Types.TypeNames.StandardValues:
+                        value.__proto__ = Sitecore_Types.StandardValues.prototype
+                        break;
+                    case Documentation_Types.TypeNames.Metaball:
+                        value.__proto__ = Documentation_Types.Metaball.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.HelixLayerMap:
+                        value.__proto__ = Documentation_Types.HelixLayerMap.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.HelixDatabaseMap:
+                        value.__proto__ = Documentation_Types.HelixDatabaseMap.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.GenerationSource:
+                        value.__proto__ = Documentation_Types.GenerationSource.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.SolutionStatistics:
+                        value.__proto__ = Documentation_Types.SolutionStatistics.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.HelixStatistics:
+                        value.__proto__ = Documentation_Types.HelixStatistics.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.HelixLayerStatistics:
+                        value.__proto__ = Documentation_Types.HelixLayerStatistics.prototype;
+                        break;
+                    case Documentation_Types.TypeNames.HelixModuleStatistics:
+                        value.__proto__ = Documentation_Types.HelixModuleStatistics.prototype;
+                        break;
+                    default:
+                        // unknown type, let it fall through
+                        break;
                 }
-                break;
+                
         }
         return value;
     });

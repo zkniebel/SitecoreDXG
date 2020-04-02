@@ -108,7 +108,11 @@ function SitecoreDXGConfiguration() {
             /**
              * @property The name of the MDJ file generation queue
              */
-            MDJGenerationQueueName: "generation_queue__mdj"
+            MDJGenerationQueueName: "generation_queue__mdj",
+            /**
+             * @property The name of the validation generation queue
+             */
+            ValidationGenerationQueueName: "generation_queue__validation"
         }
     };
 

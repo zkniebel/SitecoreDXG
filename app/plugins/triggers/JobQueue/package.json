@@ -1,0 +1,14 @@
+{
+  "name": "sitecoredxg-trigger-jobqueue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "jobqueue_reader.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.5.2"
+  }
+}

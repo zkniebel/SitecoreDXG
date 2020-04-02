@@ -80,11 +80,11 @@ const generateMetaDataJson = function(generationSource, successCallback, errorCa
     }
 
     // generation completed
-    metaball.EndTime = Date.now();
+    generationSource.DocumentationConfiguration.EndTime = Date.now();
 
     // call the completion handlers
     var completionHandlers = generationSource.CompletionHandlerConfigurations || configuration.DefaultCompletionHandlers; 
-    completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, metaball);
+    completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, generationSource.DocumentationConfiguration);
 };
 
 /**
@@ -126,11 +126,11 @@ const generateDocumentation = function(generationSource, successCallback, errorC
                 }
 
                 // generation completed
-                metaball.EndTime = Date.now();
+                generationSource.DocumentationConfiguration.EndTime = Date.now();
 
                 // call the completion handlers
                 var completionHandlers = generationSource.CompletionHandlerConfigurations || configuration.DefaultCompletionHandlers; 
-                completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, metaball);
+                completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, generationSource.DocumentationConfiguration);
             },
             function (error) {
                 logger.error(error);

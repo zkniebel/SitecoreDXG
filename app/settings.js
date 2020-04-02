@@ -41,13 +41,15 @@ const configuration = {
             DocumentationGenerationQueueName:           // The name of the documentation generation queue
                             "generation_queue__documentation",
             MDJGenerationQueueName:                     // The name of the MDJ file generation queue
-                            "generation_queue__mdj"
+                            "generation_queue__mdj",
+            ValidationGenerationQueueName:              // The nae of the validation generation queue
+                            "generation_queue__validation"
         },
         Express: {                                      // The settings for the Express trigger
             Port:           8023						// The port number that the API should listen on (Default: 8023)
         }
     },
-    Trigger:                "RabbitMQ"                  // The name of the trigger that is to be used when the server is started
+    Trigger:                "JobQueue"                  // The name of the trigger that is to be used when the server is started
 };
 
 /**
