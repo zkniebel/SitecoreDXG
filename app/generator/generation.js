@@ -65,6 +65,17 @@ const generateMetaDataJson = function(generationSource, successCallback, errorCa
             generationSource.DocumentationConfiguration,
             helixDatabaseMap);
         logger.info(`Generated MDJ file at path "${mdjPath}"`);
+
+        // generation completed
+        generationSource.DocumentationConfiguration.EndTime = Date.now();
+    
+        if (successCallback) {
+            successCallback(mdjPath, targetFileName, targetFolderPath, targetFilePath, generationSource.DocumentationConfiguration);
+        }
+    
+        // call the completion handlers
+        var completionHandlers = generationSource.CompletionHandlerConfigurations || configuration.DefaultCompletionHandlers; 
+        completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, generationSource.DocumentationConfiguration);
     } catch (error) {
         logger.error(error); 
         
@@ -74,17 +85,6 @@ const generateMetaDataJson = function(generationSource, successCallback, errorCa
 
         return;
     }
-
-    if (successCallback) {
-        successCallback(mdjPath, targetFileName, targetFolderPath, targetFilePath);
-    }
-
-    // generation completed
-    generationSource.DocumentationConfiguration.EndTime = Date.now();
-
-    // call the completion handlers
-    var completionHandlers = generationSource.CompletionHandlerConfigurations || configuration.DefaultCompletionHandlers; 
-    completionHandlerManager.callCompletionHandlers(completionHandlers, targetFolderPath, generationSource.DocumentationConfiguration);
 };
 
 /**
@@ -122,7 +122,13 @@ const generateDocumentation = function(generationSource, successCallback, errorC
                 logger.info(`Archive zipped and saved at path "${targetArchiveFilePath}".`);
 
                 if (successCallback) {
-                    successCallback(targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath);
+                    successCallback(
+                        targetArchiveFilePath, 
+                        targetArchiveFileName, 
+                        targetFolderPath, 
+                        targetHtmlDocFolderPath, 
+                        targetMdjFilePath, 
+                        generationSource.DocumentationConfiguration);
                 }
 
                 // generation completed

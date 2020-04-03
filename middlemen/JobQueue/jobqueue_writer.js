@@ -140,7 +140,7 @@ amqp.connect(connectionString, function(err, connection) {
 
             var data = getGenerationSource();        
 
-            console.log(`Serialized source data retrieved. Forwarding to ${queue}...`);
+            console.log(`Serialized source data retrieved. Forwarding to ${queue} with Correlation ID ${generationId} and reply queue ${q.queue}...`);
 
             channel.consume(q.queue, function(msg) {
                 if (msg.properties.correlationId === generationId) {
@@ -152,7 +152,6 @@ amqp.connect(connectionString, function(err, connection) {
             }, {
                 noAck: true
             });
-
             channel.sendToQueue(queue, Buffer.from(data), { correlationId: generationId, replyTo: q.queue});
             console.log(" [x] Sent %s bytes to the generation_queue", data.length);
         });

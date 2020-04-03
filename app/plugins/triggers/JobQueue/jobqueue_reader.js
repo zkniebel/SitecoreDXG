@@ -22,6 +22,9 @@
 // third-party
 const amqp = require('amqplib/callback_api');
 
+// local
+const serializer = require("../../../../serializer/sitecoredxg-serializer.js");
+
 /**
  * CONSTANTS
  */
@@ -58,21 +61,51 @@ var _initializeListenerForQueue = function (connection, queue, logger, callback)
 
     logger.info(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
 
-    channel.consume(queue, function (msg) {
+    channel.consume(queue, function reply(msg) {
       var msgContentString = msg.content.toString();
       logger.info(" [x] Received message consisting of %s bytes", msgContentString.length);
 
       if (typeof callback !== "undefined") {
         try {
-          callback(msg, msgContentString);
+          callback(msg, msgContentString, function(metaball, success) {
+            var replyObj;
+            if (success) {
+              replyObj = {
+                generation_error_msg: undefined,
+                generation_success: success,
+                generation_started: metaball.StartTime,
+                generation_ended: metaball.EndTime,
+                commit_hash: metaball.CommitHash,
+                commit_link: metaball.CommitLink,
+                deploy_link: metaball.DeployLink,
+                validation_passed: !metaball.ValidationErrorsDetected,
+                validation_errors: metaball.ValidationErrors
+              };
+            } else {
+              replyObj = {
+                generation_error_msg: "An error occurred during generation",
+                generation_error: metaball, // TODO: currently the error is passed in place of metaball which is dirty - fix this
+              }
+            }
+            channel.sendToQueue(
+              msg.properties.replyTo, 
+              Buffer.from(JSON.stringify(replyObj)), 
+              { correlationId: msg.properties.correlationId });
+          });
         } catch (error) {
           logger.error(`Error occurred while executing callback for listener on "${queue}" queue:`);
           logger.error(error);
+          
+          var replyObj = {
+            generation_error_msg: "An error occurred during generation",
+            generation_error: error,
+          }
+          channel.sendToQueue(
+            msg.properties.replyTo, 
+            Buffer.from(JSON.stringify(replyObj)), 
+            { correlationId: msg.properties.correlationId });
         }
       }
-
-      // TODO: update this to send back a completion status based on generation error, validation error or success
-      channel.sendToQueue(msg.properties.replyTo, Buffer.from("Completed"), { correlationid: msg.properties.correlationid });
 
       channel.ack(msg);
     });
@@ -103,50 +136,80 @@ var initialize = function (configurationLoader, generation, logger, serializer) 
     logger.info("[AMQP]: connected");
 
     // create the listener for the documentation generation queue
-    _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.DocumentationGenerationQueueName, logger, function (msg, rawData) {
+    _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.DocumentationGenerationQueueName, logger, function (msg, rawData, replyCallback) {
       var parsedData = parseDataFromQueue(rawData, serializer); 
       logger.info("Passing data to documentation generator...");
       generation.generateDocumentation(
         parsedData,
-        function (targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath) {
+        function (targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath, metaball) {
           logger.info(`HTML documentation saved to: "${targetHtmlDocFolderPath}"`);
-          logger.info(`Generation completed successfully!`);
+          logger.info(`Generation completed successfully!`);          
+
+          if (typeof replyCallback !== "undefined") {
+            // TODO: update this to change based on validation results
+            replyCallback(metaball, true);
+          }
         },
         function (error) {
-          logger.error(`Generation failed with error: "${error}"`);
+          logger.error(`Generation failed with error: "${error}"`);                
+
+          if (typeof replyCallback !== "undefined") {
+            // TODO: update this to change based on validation results
+            replyCallback(error, false);
+          }
         }
       );
     });
 
     // create the listener for the MDJ file generation queue
-    _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, logger, function (msg, rawData) {
+    _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.MDJGenerationQueueName, logger, function (msg, rawData, replyCallback) {
       var parsedData = parseDataFromQueue(rawData, serializer); 
       logger.info("Passing data to metadata-json file generator...");
       generation.generateMetaDataJson(
         parsedData,
-        function (mdjPath, targetFileName, targetFolderPath, targetFilePath) {
+        function (mdjPath, targetFileName, targetFolderPath, targetFilePath, metaball) {
           logger.info(`Metadata-JSON file saved to: "${targetFilePath}"`);
           logger.info(`Generation completed successfully!`);
+
+          if (typeof replyCallback !== "undefined") {
+            // TODO: update this to change based on validation results
+            replyCallback(metaball, true);
+          }
         },
         function (error) {
-          logger.error(`Generation failed with error: "${error}"`);
+          logger.error(`Generation failed with error: "${error}"`);               
+
+          if (typeof replyCallback !== "undefined") {
+            // TODO: update this to change based on validation results
+            replyCallback(error, false);
+          }
         }
       );
     });    
 
     // TODO: uncomment and wire up the validation generation queue
     // create the listener for the valiation generation queue
-    // _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.ValidationGenerationQueueName, logger, function (msg, rawData) {
+    // _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.ValidationGenerationQueueName, logger, function (msg, rawData, replyCallback) {
     //   var parsedData = parseDataFromQueue(rawData, serializer); 
     //   logger.info("Passing data to metadata-json file generator...");
     //   generation.generateMetaDataJson(
     //     parsedData,
-    //     function (mdjPath, targetFileName, targetFolderPath, targetFilePath) {
+    //     function (mdjPath, targetFileName, targetFolderPath, targetFilePath, metaball) {
     //       logger.info(`Metadata-JSON file saved to: "${targetFilePath}"`);
-    //       logger.info(`Generation completed successfully!`);
+    //       logger.info(`Generation completed successfully!`);  
+
+          // if (typeof replyCallback !== "undefined") {
+          //   // TODO: update this to change based on validation results
+          //   replyCallback("Generation Completed Successfully");
+          // }
     //     },
     //     function (error) {
-    //       logger.error(`Generation failed with error: "${error}"`);
+    //       logger.error(`Generation failed with error: "${error}"`);               
+
+          // if (typeof replyCallback !== "undefined") {
+          //   // TODO: update this to change based on validation results
+          //   replyCallback(`Generation failed with error: ${error}`);
+          // }
     //     }
     //   );
     // });
