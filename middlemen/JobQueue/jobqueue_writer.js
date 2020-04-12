@@ -166,7 +166,6 @@ amqp.connect(connectionString, function(err, connection) {
     });
 });
 
-// TODO: remove this
 function generateUuid() {
     return Math.random().toString() +
         Math.random().toString() +

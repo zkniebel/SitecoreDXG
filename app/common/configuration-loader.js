@@ -124,7 +124,7 @@ function SitecoreDXGConfiguration() {
     /**
      * @property The name of the trigger that is to be used when the server is started
      */
-    this.Trigger = "RabbitMQ";
+    this.Trigger = "JobQueue";
 
 
     /** 

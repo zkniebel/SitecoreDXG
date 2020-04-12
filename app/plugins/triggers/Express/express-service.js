@@ -32,7 +32,7 @@ const TRIGGER_ID = "Express";
  * FUNCTIONS
  */
 
-var initialize = function(configurationLoader, generation, logger) {
+var initialize = function(configurationLoader, generation, logger, serializer) {
     const configuration = configurationLoader.getConfiguration();
     const port = configuration.Triggers.Express.Port;    
 
@@ -62,7 +62,7 @@ var initialize = function(configurationLoader, generation, logger) {
         }
 
         generation.generateMetaDataJson(
-            request.body.Data,
+            serializer.Json_Converter.deserialize(rawData),
             function(mdjPath, targetFileName, targetFolderPath, targetFilePath) {
                 response.sendFile(targetFileName, { root: targetFolderPath }, function (error) {
                     if (error) {
@@ -84,7 +84,7 @@ var initialize = function(configurationLoader, generation, logger) {
         }
 
         generation.generateDocumentation(
-            request.body.Data,
+            serializer.Json_Converter.deserialize(rawData),
             function(targetArchiveFilePath, targetArchiveFileName, targetFolderPath, targetHtmlDocFolderPath, targetMdjFilePath) {
                 response.sendFile(targetArchiveFileName, { root: targetFolderPath }, function (error) {
                     if (error) {

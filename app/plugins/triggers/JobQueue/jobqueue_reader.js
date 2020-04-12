@@ -22,9 +22,6 @@
 // third-party
 const amqp = require('amqplib/callback_api');
 
-// local
-const serializer = require("../../../../serializer/sitecoredxg-serializer.js");
-
 /**
  * CONSTANTS
  */
@@ -185,34 +182,7 @@ var initialize = function (configurationLoader, generation, logger, serializer) 
           }
         }
       );
-    });    
-
-    // TODO: uncomment and wire up the validation generation queue
-    // create the listener for the valiation generation queue
-    // _initializeListenerForQueue(connection, configuration.Triggers.RabbitMQ.ValidationGenerationQueueName, logger, function (msg, rawData, replyCallback) {
-    //   var parsedData = parseDataFromQueue(rawData, serializer); 
-    //   logger.info("Passing data to metadata-json file generator...");
-    //   generation.generateMetaDataJson(
-    //     parsedData,
-    //     function (mdjPath, targetFileName, targetFolderPath, targetFilePath, metaball) {
-    //       logger.info(`Metadata-JSON file saved to: "${targetFilePath}"`);
-    //       logger.info(`Generation completed successfully!`);  
-
-          // if (typeof replyCallback !== "undefined") {
-          //   // TODO: update this to change based on validation results
-          //   replyCallback("Generation Completed Successfully");
-          // }
-    //     },
-    //     function (error) {
-    //       logger.error(`Generation failed with error: "${error}"`);               
-
-          // if (typeof replyCallback !== "undefined") {
-          //   // TODO: update this to change based on validation results
-          //   replyCallback(`Generation failed with error: ${error}`);
-          // }
-    //     }
-    //   );
-    // });
+    });   
   });
 };
 

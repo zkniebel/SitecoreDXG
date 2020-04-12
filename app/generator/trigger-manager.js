@@ -22,7 +22,7 @@
 const logger = require("../common/logging.js").logger;
 const configurationLoader = require("../common/configuration-loader.js");
 const generation = require("./generation.js");
-const serializer = require("../../serializer/sitecoredxg-serializer.js"); //TODO: change to read path from config file setting
+const serializer = require("../../serializer/sitecoredxg-serializer.js");
 
 /**
  * TYPES
