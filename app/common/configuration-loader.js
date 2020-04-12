@@ -28,7 +28,7 @@ const leftPad = require("left-pad");
 const mkdirp = require("mkdirp");
 
 // local
-const settings = require("../settings.js").configuration;
+const settings = require(path.join(process.cwd(),"settings.js")).configuration;
 const fileUtils = require("./file-utils.js");
 
 /**

@@ -1,7 +1,8 @@
 {
   "name": "sitecoredxg-generation-service",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "description": "SitecoreDXG Generation Service - The Generation Service for SitecoreDXG.",
+  "bin": "main.js",
   "main": "main.js",
   "scripts": {
     "preinstall": "node preinstall",

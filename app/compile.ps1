@@ -1,0 +1,1 @@
+nexe ./main.js -t win32-x64-8.11.2
